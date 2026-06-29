@@ -1,52 +1,72 @@
-# v19-GCP-clean-teamsEnabled finalized stack and verified dev commands.
-# Entries marked TBD are still being decided — see docs/adr/ as they land.
+# v20-Azure-clean-teamsEnabled finalized stack and verified dev commands.
 
 cloud:
-  provider: GCP
+  provider: Azure
 
 database:
-  service: Cloud SQL
-  engine: PostgreSQL
+  service: Azure SQL Database
+  engine: Microsoft SQL Server
   why:
-    - "Relational core with strong constraints, transactions, and migrations"
-    - "Rich types (range/interval/jsonb) and recursive queries when needed"
+    - "Managed relational core with strong constraints, transactions, migrations"
+    - "First-class Azure integration (Key Vault secrets, managed identity, Container Apps)"
+
+object_storage:
+  service: Azure Blob Storage
+  why:
+    - "Item attachments / binary blobs out of the relational store"
+  data_path: "sample-service -> BlobStorageService -> Blob container"
 
 backend:
-  language: Python
-  framework: FastAPI
+  language: Java
+  version: "21"
+  framework: Spring Boot
+  framework_version: "3.4"
+  build: Gradle (Kotlin DSL)
+  architecture: microservices
+  api_style: RESTful
+  migrations: Liquibase
+  source_root: backend
+  services:
+    - name: api-gateway
+      role: "edge — routes /api/** to sample-service, owns CORS; Spring Cloud Gateway"
+      port: 8080
+    - name: sample-service
+      role: "domain — items REST API over Azure SQL + Blob Storage"
+      port: 8081
+  test:
+    framework: "JUnit 5 + Mockito"
+    integration: "Testcontainers (SQL Server) in a separate integrationTest source set"
+
 frontend:
   framework: Angular
   version: "19"
   source_root: src/frontend
-  hosting: Firebase Hosting   # static bundle only
-  data_path: "Angular -> FastAPI -> Cloud SQL"   # no Firestore, no direct datastore access
+  hosting: Azure Static Web Apps   # static bundle only
+  data_path: "Angular -> api-gateway -> sample-service -> Azure SQL"
   test:
-    runner: "Vitest + jsdom (AnalogJS @analogjs/vite-plugin-angular@1.19, for Angular 19)"
-    # Vitest+jsdom runs Jasmine-style specs (describe/it/expect) headless in
-    # Node — no system Chrome needed (the dev/CI env has none).
+    runner: "Karma + Jasmine (ChromeHeadless)"
   dev_commands:    # run from repo root; --prefix points npm at the frontend
     install: "npm --prefix src/frontend ci"
-    test: "npm --prefix src/frontend test"      # vitest run
+    test: "npm --prefix src/frontend test"      # ng test --watch=false --browsers=ChromeHeadlessCI
     serve: "npm --prefix src/frontend start"    # ng serve
     build: "npm --prefix src/frontend run build"
 
 compute:
-  target: GKE
-  mode: Autopilot
-  workload: FastAPI backend (containerized)
-  cloud_sql_access: Cloud SQL Auth Proxy / connector from cluster
+  target: Azure Container Apps
+  registry: Azure Container Registry (ACR)
+  secrets: Azure Key Vault (referenced as secret-backed env vars)
+  identity: user-assigned managed identity (runtime = ACR pull + KV read; deploy = GitHub OIDC)
 
 source_layout:
-  backend: src/backend
-  data: src/data
+  backend: backend            # Gradle multi-module (api-gateway, sample-service)
   frontend: src/frontend
 
-dev_commands:    # verified on Python 3.12 (CI pins 3.12); see AGENTS.md for details
-  # Creates a venv, installs runtime + test deps, and the package (editable).
-  install: "python -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/pip install -e ."
-  # Runs the test suite. Needs a Docker daemon: the tests start a throwaway
-  # postgres:16-alpine via testcontainers. No live Cloud SQL required.
-  test: ".venv/bin/pytest"
-  # Serves the FastAPI app. Set DATABASE_URL to a Postgres instance first;
-  # apply migrations with `.venv/bin/alembic upgrade head`.
-  run: ".venv/bin/uvicorn backend.main:app --reload"
+dev_commands:    # verified on Java 21 (Temurin); CI pins Java 21
+  # Builds both microservices.
+  install: "cd backend && ./gradlew build"
+  # Runs the unit test suite (JUnit 5 + Mockito). No DB/Docker required.
+  test: "cd backend && ./gradlew test"
+  # Integration tests spin a throwaway SQL Server via Testcontainers (needs Docker).
+  integration_test: "cd backend && ./gradlew :sample-service:integrationTest"
+  # Serves a service locally. Set DATABASE_URL / BLOB_CONNECTION_STRING for real data.
+  run: "cd backend && ./gradlew :sample-service:bootRun"

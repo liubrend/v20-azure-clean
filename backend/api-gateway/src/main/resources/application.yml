@@ -1,0 +1,35 @@
+# api-gateway config. The downstream service URI and allowed frontend origin come
+# from env at runtime (Container Apps injects them); defaults keep local dev working.
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      # CORS for the Angular Static Web App. Origin is injected per environment.
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "${FRONTEND_ORIGIN:http://localhost:4200}"
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+            allowedHeaders: "*"
+      routes:
+        - id: sample-service
+          # SAMPLE_SERVICE_URI points at the internal Container App ingress.
+          uri: ${SAMPLE_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/api/**
+          filters:
+            - StripPrefix=1   # /api/items -> /items on the downstream service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

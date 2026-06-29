@@ -49,16 +49,18 @@ A `high` blocks the PR, so it must clear a higher bar than "worth checking":
 Treat these standard patterns as **correct** unless the diff shows a concrete
 contradiction:
 
-- A Kubernetes `Service` maps `port` → `targetPort`. An Ingress targeting the
-  Service `port` (e.g. 80) while the container listens on `targetPort` (e.g. 8080)
-  is the normal chain, **not** a port mismatch.
-- GKE Workload Identity Federation: a repository-scoped `principalSet` bounded by a
-  provider `attribute_condition` (`assertion.repository == … && assertion.ref == …`)
-  is the standard secure pattern — the condition is the ref boundary; the binding
-  need not duplicate it.
+- An Azure Container App `ingress.target_port` is the port the container listens on;
+  the gateway calling sample-service over its internal `fqdn` on HTTPS (443) while the
+  container listens on 8081 is the normal chain, **not** a port mismatch.
+- GitHub OIDC → Azure: a user-assigned managed identity with a federated identity
+  credential scoped `subject = repo:owner/repo:ref:refs/heads/main` is the standard
+  keyless pattern — the subject is the ref boundary; no client secret is needed.
 - GitHub Actions `run:` steps default to `bash -eo pipefail` (pipefail already on).
-- Cloud SQL Auth Proxy as a native sidecar (initContainer `restartPolicy: Always`,
-  GKE 1.29+) with `--exit-zero-on-sigterm` is a valid Job/Deployment pattern.
+- A Spring Boot service booting with a default/unreachable `DATABASE_URL` and Hikari
+  `initialization-fail-timeout: -1` (defer connection) is the intended scaffold pattern
+  so `/health` serves before a live Azure SQL exists — **not** a missing-config defect.
+- Liquibase gated behind `LIQUIBASE_ENABLED` (off for unit tests, on in the deploy env)
+  is intentional, **not** a disabled-migrations defect.
 
 ## Split-PR and cross-file context
 
@@ -69,9 +71,9 @@ repository as a whole is consistent unless the diff itself shows a contradiction
 
 ## Infrastructure / IaC / workflow diffs
 
-Terraform, Kubernetes manifests, Dockerfiles, and GitHub Actions cannot be applied
-against a live cloud in CI. The validation bar is `terraform validate`/`fmt`,
-manifest schema validation (kubeconform), `docker build`, and YAML/workflow parse —
+Terraform (Azure), Container Apps definitions, Dockerfiles, and GitHub Actions cannot
+be applied against a live cloud in CI. The validation bar is `terraform validate`/`fmt`,
+`docker build` + a container `/health` smoke, and YAML/workflow parse —
 all of which run as separate CI gates. "Not exercised against a live project" is
 **expected** for IaC and is **not a finding**. Judge correctness from the
 configuration and the project docs, not from a hypothetical apply.

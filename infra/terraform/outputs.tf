@@ -1,24 +1,41 @@
-output "vpc_network" {
-  description = "VPC self link (the auth module and Cloud SQL connector reference it)."
-  value       = google_compute_network.vpc.id
+# Set the non-secret values as GitHub repo Variables so the deploy workflows resolve.
+
+output "acr_login_server" {
+  description = "ACR login server → GitHub var ACR_LOGIN_SERVER."
+  value       = azurerm_container_registry.main.login_server
 }
 
-output "artifact_registry_repo" {
-  description = "Artifact Registry repository id for the backend image."
-  value       = google_artifact_registry_repository.backend.repository_id
+output "resource_group" {
+  description = "Resource group name → GitHub var AZURE_RESOURCE_GROUP."
+  value       = azurerm_resource_group.main.name
 }
 
-output "cloudsql_connection_name" {
-  description = "Cloud SQL instance connection name (project:region:instance)."
-  value       = google_sql_database_instance.main.connection_name
+output "deploy_client_id" {
+  description = "Deploy managed-identity client id → GitHub var AZURE_CLIENT_ID (for azure/login)."
+  value       = azurerm_user_assigned_identity.deploy.client_id
 }
 
-output "database_url_secret_id" {
-  description = "Secret Manager secret holding DATABASE_URL."
-  value       = google_secret_manager_secret.database_url.secret_id
+output "api_gateway_app_name" {
+  description = "api-gateway Container App name → GitHub var GATEWAY_APP_NAME."
+  value       = azurerm_container_app.api_gateway.name
 }
 
-output "gke_cluster_name" {
-  description = "GKE Autopilot cluster name."
-  value       = google_container_cluster.main.name
+output "sample_service_app_name" {
+  description = "sample-service Container App name → GitHub var SAMPLE_SERVICE_APP_NAME."
+  value       = azurerm_container_app.sample_service.name
+}
+
+output "api_gateway_fqdn" {
+  description = "Public hostname of the api-gateway."
+  value       = azurerm_container_app.api_gateway.ingress[0].fqdn
+}
+
+output "static_web_app_host" {
+  description = "Frontend hostname (Static Web App)."
+  value       = azurerm_static_web_app.frontend.default_host_name
+}
+
+output "sql_server_fqdn" {
+  description = "Azure SQL server FQDN."
+  value       = azurerm_mssql_server.main.fully_qualified_domain_name
 }

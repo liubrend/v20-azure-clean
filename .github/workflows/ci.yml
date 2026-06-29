@@ -5,16 +5,12 @@ name: agentic-sdlc-gates
 on: [pull_request]
 
 jobs:
-  L1-policy:                       # policy checks: lint, security, money-safety rules
+  L1-policy:                       # policy checks: security, money-safety rules
     runs-on: ubuntu-latest
     env:
       CODE_ROOT: ${{ vars.CODE_ROOT }}   # repo/Actions variable; falls back to "src" below
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install ruff semgrep
-      - run: ruff check .
       - name: Security scan (re-run your pre-commit hook)
         run: |
           if [ -x ./.claude/hooks/pre-commit-security.sh ]; then
@@ -44,18 +40,21 @@ jobs:
       - name: Self-test checks against known-bad/good fixtures
         run: bash scripts/checks/selftest.sh
 
-  L2-tests:                        # test proof: spec scenarios become tests
-    # NB: the two behavioral invariants — "never exceed original size" and "halt+alert on broker
-    # error" — can't be grepped. They are enforced HERE, as spec-derived tests (CLAUDE.md → L2).
+  L2-tests:                        # backend test proof: JUnit 5 + Mockito on Java 21
+    # NB: spec-derived behavioral invariants live HERE, as tests (CLAUDE.md → L2).
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -r requirements.txt
-      - run: pytest --cov=src --cov-fail-under=90
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: ./gradlew test --no-daemon
 
-  L2-frontend-tests:               # frontend UI tests: Vitest + jsdom (no browser)
+  L2-frontend-tests:               # frontend UI tests: Karma + Jasmine on headless Chrome
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,8 +66,12 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: src/frontend/package-lock.json
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
       - run: npm ci
       - run: npm test
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
 
   L1-terraform:                    # IaC: format + validate (no apply, no creds)
     runs-on: ubuntu-latest
@@ -84,40 +87,27 @@ jobs:
       - run: terraform init -backend=false
       - run: terraform validate
 
-  L2-backend-image:                # the backend image builds and imports
+  L2-backend-image:                # the service images build and serve health
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t app-backend:ci .
-      # Prove the uvicorn target imports under the image's PYTHONPATH (catches a
-      # broken module path before deploy).
-      - run: docker run --rm app-backend:ci python -c "import backend.main; assert hasattr(backend.main, 'app')"
-
-  L1-k8s-manifests:                # schema-validate the manifests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra/k8s
-    env:
-      BACKEND_IMAGE: img
-      RUNTIME_SA_EMAIL: sa@example.iam.gserviceaccount.com
-      CLOUDSQL_INSTANCE: proj:reg:inst
-      API_HOST: api.example.com
-      FRONTEND_ORIGIN: https://example.web.app
-      IMAGE_TAG: ci
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install kubeconform
+      - name: Build images
         run: |
-          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
-          sudo mv kubeconform /usr/local/bin/
-      - name: Validate standard manifests
-        # GKE CRDs (managedcertificate, backendconfig) have no public schema here and
-        # are validated at apply time on the cluster — excluded to avoid false coverage.
+          set -euo pipefail
+          cd backend
+          docker build -f api-gateway/Dockerfile -t api-gateway:ci .
+          docker build -f sample-service/Dockerfile -t sample-service:ci .
+      - name: Smoke — sample-service serves /health
         run: |
-          for f in serviceaccount deployment service ingress migrate-job; do
-            envsubst < "$f.yaml" | kubeconform -strict -summary -
+          set -euo pipefail
+          docker run -d --name svc -p 8081:8081 sample-service:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8081/health | grep -q '"status":"ok"'; then
+              echo "health ok"; exit 0
+            fi
+            sleep 3
           done
+          echo "::error::sample-service did not become healthy"; docker logs svc; exit 1
 
   L3-diff-guard:                   # diff heuristics: blast radius, dangerous combinations
     runs-on: ubuntu-latest
@@ -161,27 +151,3 @@ jobs:
             --diff /tmp/pr.diff \
             --rubric .claude/agents/reviewer.md \
             --output /tmp/l4-ai-review.md
-
-  # L5-human-approval:              # human gate: require an explicit PR approval
-  #   # Disabled for now. Real enforcement belongs in GitHub branch protection:
-  #   # require pull request reviews before merging, and make L1-L4 required checks.
-  #   # This job can be enabled as a visible CI guard once the repo plan/settings
-  #   # support branch protection or if we want CI to fail unapproved PRs.
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     pull-requests: read
-  #   steps:
-  #     - name: Require at least one human approval
-  #       env:
-  #         GH_TOKEN: ${{ github.token }}
-  #         PR_NUMBER: ${{ github.event.pull_request.number }}
-  #         REPOSITORY: ${{ github.repository }}
-  #       run: |
-  #         APPROVALS="$(
-  #           gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/reviews" \
-  #             --jq '[.[] | select(.state == "APPROVED") | .user.login] | unique | length'
-  #         )"
-  #         if [ "$APPROVALS" -lt 1 ]; then
-  #           echo "::error::L5 requires at least one human PR approval before merge"
-  #           exit 1
-  #         fi

@@ -1,5 +1,5 @@
-# Frontend deploy: build the Angular bundle, push to Firebase
-# Hosting. Keyless GCP auth via Workload Identity Federation (no stored key).
+# Frontend deploy: build the Angular bundle, push to Azure Static Web Apps.
+# Uses the SWA deployment token (a GitHub secret); the backend stays OIDC-keyless.
 name: deploy-frontend
 
 on:
@@ -7,8 +7,6 @@ on:
     branches: [main]
     paths:
       - "src/frontend/**"
-      - "firebase.json"
-      - ".firebaserc"
       - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:
 
@@ -17,8 +15,8 @@ permissions:
 
 jobs:
   deploy:
-    # Skip until the WIF bootstrap has set the repo variables.
-    if: ${{ vars.WIF_PROVIDER != '' }}
+    # Skip until the bootstrap has set the repo variables / SWA token.
+    if: ${{ vars.API_HOST != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,43 +42,13 @@ jobs:
 
       - run: npm --prefix src/frontend run build
 
-      # Confirm the FIREBASE_SERVICE_ACCOUNT secret is a valid SA key (fail loudly
-      # if it's empty/garbage rather than a confusing "Failed to authenticate").
-      - name: Validate the service-account secret
-        env:
-          SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          printf '%s' "$SA_KEY" > "$RUNNER_TEMP/sa.json"
-          python3 -c "import json; d=json.load(open('$RUNNER_TEMP/sa.json')); assert d.get('type')=='service_account', 'type='+str(d.get('type')); print('SA:', d['client_email'], '| project:', d['project_id'])"
-          rm -f "$RUNNER_TEMP/sa.json"
-
-      # Deploy via the official Firebase action, which handles SA-key auth reliably
-      # (firebase-tools' CLI rejected the WIF credential and the login:ci token).
-      # Frontend-only key; the backend stays fully WIF-keyless. continue-on-error so
-      # the benign "version is already live" no-op (identical content) doesn't fail
-      # the job — the verify step below decides success by comparing live vs build.
-      - name: Deploy to Firebase Hosting
-        id: deploy
-        continue-on-error: true
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      # Static Web Apps deploy. The bundle is already built above (skip_app_build),
+      # so the action just uploads dist/. The deployment token is a GitHub secret.
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
-          channelId: live
-
-      # Source of truth for success: the live site must serve exactly what we built.
-      # Matches whether the release applied or was a no-op; a real failure (stale
-      # live content) is caught as a hash mismatch.
-      - name: Verify the live site matches the build
-        run: |
-          set -euo pipefail
-          built=$(sha256sum src/frontend/dist/frontend/browser/index.html | cut -d' ' -f1)
-          curl -fsSL "https://${{ vars.FIREBASE_PROJECT_ID }}.web.app/index.html" -o /tmp/live.html
-          live=$(sha256sum /tmp/live.html | cut -d' ' -f1)
-          if [ "$built" = "$live" ]; then
-            echo "Live site matches the build (released, or an unchanged-content no-op)."
-          else
-            echo "::error::Live site does not match the build — the deploy did not release new content."
-            exit 1
-          fi
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: "src/frontend/dist/frontend/browser"
+          skip_app_build: true
+          skip_api_build: true

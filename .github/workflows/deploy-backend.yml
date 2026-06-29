@@ -1,100 +1,71 @@
-# Backend deploy: build → Artifact Registry → migrate → roll out.
-# Authenticates to GCP keylessly via Workload Identity Federation (no stored key).
-# Non-secret config comes from repo Variables set during the WIF bootstrap.
+# Backend deploy: build both service images → push to ACR → update the Container Apps.
+# Authenticates to Azure keylessly via GitHub OIDC (azure/login, no stored secret).
+# Non-secret config comes from repo Variables set during the Terraform bootstrap.
+# Liquibase runs on sample-service startup (SPRING_LIQUIBASE_ENABLED=true set in
+# Terraform), so there is no separate migrate step here.
 name: deploy-backend
 
 on:
   push:
     branches: [main]
     paths:
-      - "src/backend/**"
-      - "src/data/**"
-      - "Dockerfile"
-      - "requirements.txt"
-      - "infra/k8s/**"
+      - "backend/**"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write # required for the WIF OIDC token
+  id-token: write # required for the Azure OIDC token
 
 jobs:
   deploy:
-    # Skip until the WIF bootstrap has set the repo variables — keeps main green
+    # Skip until the Terraform bootstrap has set the repo variables — keeps main green
     # before the project exists.
-    if: ${{ vars.WIF_PROVIDER != '' }}
+    if: ${{ vars.AZURE_CLIENT_ID != '' }}
     runs-on: ubuntu-latest
     env:
-      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend:${{ github.sha }}
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
-      - id: auth
-        uses: google-github-actions/auth@v2
+      - uses: azure/login@v2
         with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOY_SA_EMAIL }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Build and push the image
+      - name: Build and push images to ACR
         run: |
           set -euo pipefail
-          gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
+          REGISTRY="${{ vars.ACR_LOGIN_SERVER }}"
+          az acr login --name "${REGISTRY%%.*}"
+          cd backend
+          for svc in api-gateway sample-service; do
+            img="$REGISTRY/$svc:${IMAGE_TAG}"
+            docker build -f "$svc/Dockerfile" -t "$img" .
+            docker push "$img"
+          done
 
-      - uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: ${{ vars.GKE_CLUSTER }}
-          location: ${{ vars.GCP_REGION }}
-
-      - name: Sync DATABASE_URL from Secret Manager into the cluster
+      - name: Update the Container Apps to the new images
         run: |
           set -euo pipefail
-          DB_URL="$(gcloud secrets versions access latest --secret=app-database-url)"
-          echo "::add-mask::$DB_URL"
-          kubectl create secret generic app-db \
-            --from-literal=DATABASE_URL="$DB_URL" \
-            --dry-run=client -o yaml | kubectl apply -f -
+          REGISTRY="${{ vars.ACR_LOGIN_SERVER }}"
+          az containerapp update \
+            --name "${{ vars.GATEWAY_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "$REGISTRY/api-gateway:${IMAGE_TAG}"
+          az containerapp update \
+            --name "${{ vars.SAMPLE_SERVICE_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "$REGISTRY/sample-service:${IMAGE_TAG}"
 
-      - name: Migrate, then roll out
-        env:
-          BACKEND_IMAGE: ${{ env.IMAGE }}
-          RUNTIME_SA_EMAIL: ${{ vars.RUNTIME_SA_EMAIL }}
-          CLOUDSQL_INSTANCE: ${{ vars.CLOUDSQL_INSTANCE }}
-          API_HOST: ${{ vars.API_HOST }}
-          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Verify the gateway is healthy
         run: |
           set -euo pipefail
-          cd infra/k8s
-          render() { envsubst < "$1" | kubectl apply -f -; }
-
-          render serviceaccount.yaml
-          render backendconfig.yaml
-
-          # Run migrations before pointing traffic at the new image. A Job spec is
-          # immutable, so a re-run for the same SHA must replace, not apply onto, the
-          # prior Job — delete it first (idempotent).
-          kubectl delete job "app-migrate-${IMAGE_TAG}" --ignore-not-found --wait=true
-          envsubst < migrate-job.yaml | kubectl apply -f -
-          kubectl wait --for=condition=complete --timeout=300s "job/app-migrate-${IMAGE_TAG}"
-
-          render service.yaml
-          render managedcertificate.yaml
-          render ingress.yaml
-          render deployment.yaml
-          kubectl rollout status deployment/app-backend --timeout=300s
-
-      - name: Diagnostics on failure
-        if: failure()
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          kubectl get pods -o wide || true
-          kubectl describe "job/app-migrate-${IMAGE_TAG}" || true
-          kubectl logs "job/app-migrate-${IMAGE_TAG}" --all-containers --tail=200 || true
-          kubectl describe deployment/app-backend || true
-          kubectl logs deployment/app-backend --all-containers --tail=200 || true
+          for i in $(seq 1 30); do
+            if curl -fsS "https://${{ vars.API_HOST }}/actuator/health" | grep -q '"status":"UP"'; then
+              echo "gateway healthy"; exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::gateway did not become healthy after deploy"; exit 1

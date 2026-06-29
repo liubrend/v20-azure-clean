@@ -1,4 +1,4 @@
-"""Dependency-free staged-file security scanner for v19-GCP-clean-teamsEnabled commits."""
+"""Dependency-free staged-file security scanner for v20-Azure-clean-teamsEnabled commits."""
 
 from __future__ import annotations
 
@@ -345,7 +345,7 @@ def should_fail(findings: Iterable[Finding], threshold: str) -> bool:
 
 
 def print_report(findings: Sequence[Finding], checked: int, threshold: str) -> None:
-    print("v19-GCP-clean-teamsEnabled security pre-commit scan")
+    print("v20-Azure-clean-teamsEnabled security pre-commit scan")
     print(f"Checked {checked} file(s). Fail threshold: {threshold}.")
     if not findings:
         print("No security findings.")

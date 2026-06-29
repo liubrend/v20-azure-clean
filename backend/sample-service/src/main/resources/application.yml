@@ -1,0 +1,48 @@
+# sample-service config. Azure SQL datasource and Blob connection come from env at
+# runtime (Key Vault -> Container Apps secrets); never hardcoded. Defaults are blank so
+# the service boots for unit tests / image-smoke without a live database.
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: sample-service
+  datasource:
+    # Example: jdbc:sqlserver://<server>.database.windows.net:1433;database=app;encrypt=true
+    # Default points at localhost so the service boots for unit tests / image-smoke; with
+    # initialization-fail-timeout=-1 Hikari does not probe the connection at startup.
+    url: ${DATABASE_URL:jdbc:sqlserver://localhost:1433;database=app;encrypt=false}
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      initialization-fail-timeout: -1
+  jpa:
+    hibernate:
+      ddl-auto: none   # schema owned by Liquibase, not Hibernate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    # Disabled by default so a fresh scaffold boots without a database; the deploy
+    # env sets SPRING_LIQUIBASE_ENABLED=true (and a real DATABASE_URL).
+    enabled: ${LIQUIBASE_ENABLED:false}
+
+# Azure Blob Storage. Connection string injected from Key Vault in real environments.
+azure:
+  storage:
+    connection-string: ${BLOB_CONNECTION_STRING:}
+    container: ${BLOB_CONTAINER:attachments}
+
+# Let the service start even when DATABASE_URL is unset (datasource initialized lazily).
+spring.sql.init.mode: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -6,5 +6,5 @@ import { Component } from '@angular/core';
   template: `<h1>{{ title }}</h1>`,
 })
 export class AppComponent {
-  readonly title = 'v19-GCP-clean-teamsEnabled';
+  readonly title = 'v20-Azure-clean-teamsEnabled';
 }

@@ -2,11 +2,6 @@
   "fail_threshold": "high",
   "allowed_external_imports": [
     "pytest",
-    "fastapi",
-    "sqlalchemy",
-    "alembic",
-    "pydantic",
-    "uvicorn",
     "httpx",
     "aiohttp",
     "requests"
@@ -16,6 +11,8 @@
     ".pytest_cache/**",
     "__pycache__/**",
     "build/**",
+    ".gradle/**",
+    "dist/**",
     "node_modules/**"
   ],
   "prompt_injection_allowlist_paths": [

@@ -1,13 +1,15 @@
 # firstmate tooling is its own repo (github.com/kunchenguid/firstmate)
 firstmate/
 
-# Python
+# Java / Gradle
+.gradle/
+**/build/
+!**/gradle/wrapper/gradle-wrapper.jar
+
+# Python (governance scripts under scripts/)
 __pycache__/
 *.py[cod]
 .venv/
-venv/
-*.egg-info/
-.coverage
 .pytest_cache/
 .ruff_cache/
 
@@ -15,6 +17,13 @@ venv/
 node_modules/
 dist/
 .angular/
+coverage/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
 
 # Env & secrets
 .env

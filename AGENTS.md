@@ -3,7 +3,7 @@
 > reviewer, and CI — applies the same rules. Edit the placeholders for each project.
 
 ## Repository
-v19-GCP-clean-teamsEnabled
+v20-Azure-clean-teamsEnabled
 
 ## docs
 - domain language lives in `CONTEXT.md`
@@ -47,13 +47,11 @@ Any change touching: auth/credentials, risk limits, or anything the L4 reviewer 
 Always spawn a sub-agent for each service and run them in parallel if possible.
 
 ## Build / test / run (backend)
-Python/FastAPI backend lives in `src/backend`; data layer lives in `src/data`. CI pins **Python 3.12**; target that.
+Java/Spring Boot microservices live in `backend/` (Gradle multi-module: `api-gateway`, `sample-service`). CI pins **Java 21** (Temurin); target that. RESTful APIs; Azure SQL via JPA + Liquibase; Azure Blob Storage via `BlobStorageService`.
 
-- **Install**: `python -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/pip install -e .`
-  `requirements.txt` is the single source of deps (CI installs it; `pyproject.toml` reads it via dynamic deps).
-- **Test**: `.venv/bin/pytest` (config in `pyproject.toml`: `pythonpath=["src"]`, coverage gate is CI's `--cov=src --cov-fail-under=90`).
-  **Tests need a Docker daemon** — `tests/conftest.py` starts a throwaway `postgres:16-alpine` via testcontainers, migrates it with Alembic, truncates between tests. **No live Cloud SQL needed.**
-- **Run**: set `DATABASE_URL` (e.g. `postgresql://user:pw@host:5432/db`), then `.venv/bin/alembic upgrade head` and `.venv/bin/uvicorn backend.main:app --reload`.
-- **Migrations**: live in `src/data/migrations`; `alembic.ini` reads `DATABASE_URL` from env (`migrations/env.py`), never hardcoded. New revision: `.venv/bin/alembic revision -m "msg"`.
-- **Lint**: `.venv/bin/ruff check .` (config in `pyproject.toml`; pre-existing `scripts/` excluded).
-- No system pip in this env; bootstrap with `uv` (`curl -LsSf https://astral.sh/uv/install.sh | sh`, then `uv venv --python 3.12 .venv && uv pip install -r requirements.txt`).
+- **Install/build**: `cd backend && ./gradlew build` (the committed wrapper pins Gradle 8.12; deps from Maven Central via the Spring Boot BOM).
+- **Test**: `cd backend && ./gradlew test` — JUnit 5 + Mockito. **No DB/Docker needed**: unit tests mock the repository/blob store, controller slices use `@WebMvcTest`. The CI L2 gate runs exactly this.
+- **Integration test**: `cd backend && ./gradlew :sample-service:integrationTest` — a separate source set that spins a throwaway **SQL Server** via Testcontainers, applies Liquibase, exercises the REST layer. **Needs a Docker daemon.**
+- **Run**: `cd backend && ./gradlew :sample-service:bootRun` (boots without env for smoke; for real data set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `BLOB_CONNECTION_STRING`, and `LIQUIBASE_ENABLED=true`). The gateway: `./gradlew :api-gateway:bootRun`.
+- **Migrations**: Liquibase changelog at `backend/sample-service/src/main/resources/db/changelog/db.changelog-master.yaml`; runs on startup only when `LIQUIBASE_ENABLED=true`. Connection details come from env (Key Vault → Container Apps), never hardcoded.
+- No JDK in this env by default; fetch a portable Temurin 21 tarball and set `JAVA_HOME` before running the wrapper.

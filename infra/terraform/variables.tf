@@ -1,36 +1,24 @@
-variable "project_id" {
-  description = "Target GCP project id."
+variable "subscription_id" {
+  description = "Target Azure subscription id."
   type        = string
 }
 
-variable "region" {
-  description = "Primary region for regional resources."
+variable "location" {
+  description = "Primary Azure region for regional resources."
   type        = string
-  default     = "europe-west1"
+  default     = "westeurope"
 }
 
 variable "name_prefix" {
-  description = "Prefix applied to resource names."
+  description = "Prefix applied to resource names. Keep short/lowercase — some Azure names are length/charset constrained."
   type        = string
-  default     = "app"
+  default     = "v20az"
 }
 
-variable "db_tier" {
-  description = "Cloud SQL machine tier."
+variable "sql_admin_login" {
+  description = "Azure SQL server administrator login."
   type        = string
-  default     = "db-custom-1-3840"
-}
-
-variable "availability_type" {
-  description = "Cloud SQL availability: ZONAL (MVP) or REGIONAL (HA)."
-  type        = string
-  default     = "ZONAL"
-}
-
-variable "db_edition" {
-  description = "Cloud SQL edition. ENTERPRISE supports db-custom-* tiers; ENTERPRISE_PLUS requires db-perf-optimized-*."
-  type        = string
-  default     = "ENTERPRISE"
+  default     = "sqladmin"
 }
 
 variable "db_name" {
@@ -39,14 +27,38 @@ variable "db_name" {
   default     = "app"
 }
 
-variable "db_user" {
-  description = "Application database user."
+variable "sql_sku" {
+  description = "Azure SQL Database SKU (e.g. Basic, S0, GP_S_Gen5_1)."
   type        = string
-  default     = "app"
+  default     = "S0"
 }
 
-variable "deletion_protection" {
-  description = "Guard stateful resources (Cloud SQL) against terraform destroy."
-  type        = bool
-  default     = true
+variable "blob_container" {
+  description = "Blob container for item attachments."
+  type        = string
+  default     = "attachments"
+}
+
+variable "github_repository" {
+  description = "owner/repo allowed to assume the deploy identity via GitHub OIDC."
+  type        = string
+  default     = "liubrend/v20-Azure-clean-teamsEnabled"
+}
+
+variable "github_ref" {
+  description = "Git ref allowed to deploy (only this ref's Actions runs can assume the deploy identity)."
+  type        = string
+  default     = "refs/heads/main"
+}
+
+variable "gateway_image" {
+  description = "api-gateway image. Placeholder until the deploy workflow pushes the real tag."
+  type        = string
+  default     = "mcr.microsoft.com/k8se/quickstart:latest"
+}
+
+variable "sample_service_image" {
+  description = "sample-service image. Placeholder until the deploy workflow pushes the real tag."
+  type        = string
+  default     = "mcr.microsoft.com/k8se/quickstart:latest"
 }

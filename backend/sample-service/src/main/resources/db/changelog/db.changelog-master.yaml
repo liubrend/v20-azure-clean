@@ -1,0 +1,33 @@
+# Liquibase master changelog for sample-service (Azure SQL).
+# Runs at startup only when SPRING_LIQUIBASE_ENABLED=true with a real DATABASE_URL.
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-items
+      author: v20-azure
+      changes:
+        - createTable:
+            tableName: items
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: NVARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: NVARCHAR(1000)
+              - column:
+                  name: blob_path
+                  type: NVARCHAR(512)
+              - column:
+                  name: created_at
+                  type: DATETIME2
+                  constraints:
+                    nullable: false

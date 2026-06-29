@@ -1,4 +1,4 @@
-# v19-GCP-clean-teamsEnabled
+# v20-Azure-clean-teamsEnabled
 
 Domain glossary — the project's ubiquitous language. This file is a glossary only;
 goals, problems, and architecture live elsewhere (see `docs/product/`).

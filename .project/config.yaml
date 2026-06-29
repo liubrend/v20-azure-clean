@@ -1,7 +1,7 @@
 project:
-  name: v19-GCP-clean-teamsEnabled
+  name: v20-Azure-clean-teamsEnabled
   phase: init  # init | build | release. See .project/plan.md, docs/product/, CONTEXT.md
-  repository: v19-GCP-clean-teamsEnabled
+  repository: v20-Azure-clean-teamsEnabled
 
 team:
   # Add team members here

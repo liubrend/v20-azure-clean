@@ -1,7 +1,7 @@
 project:
-  name: v19-claudeTeamCCEY
+  name: v19-GCP-clean-teamsEnabled
   phase: init  # init | build | release. See .project/plan.md, docs/product/, CONTEXT.md
-  repository: v19-claudeTeamCCEY
+  repository: v19-GCP-clean-teamsEnabled
 
 team:
   # Add team members here

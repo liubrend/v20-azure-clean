@@ -19,5 +19,5 @@ def test_root_identifies_service() -> None:
     response = client.get("/")
     assert response.status_code == 200
     body = response.json()
-    assert body["service"] == "v19-claudeTeamCCEY"
+    assert body["service"] == "v19-GCP-clean-teamsEnabled"
     assert body["status"] == "ok"

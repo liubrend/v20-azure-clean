@@ -1,4 +1,4 @@
-# v19-claudeTeamCCEY
+# v19-GCP-clean-teamsEnabled
 
 [![CI](https://github.com/liubrend/v19-GCP-clean-teamsEnabled/actions/workflows/ci.yml/badge.svg)](https://github.com/liubrend/v19-GCP-clean-teamsEnabled/actions/workflows/ci.yml)
 

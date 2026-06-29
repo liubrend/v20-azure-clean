@@ -1,7 +1,7 @@
 [project]
-name = "v19-claudeTeamCCEY"
+name = "v19-GCP-clean-teamsEnabled"
 version = "0.1.0"
-description = "v19-claudeTeamCCEY backend."
+description = "v19-GCP-clean-teamsEnabled backend."
 requires-python = ">=3.12"
 dynamic = ["dependencies"]
 

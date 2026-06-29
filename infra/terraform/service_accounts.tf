@@ -4,10 +4,10 @@
 
 resource "google_service_account" "deploy" {
   account_id   = "${var.name_prefix}-deploy"
-  display_name = "v19-claudeTeamCCEY CI deploy (Workload Identity Federation target)"
+  display_name = "v19-GCP-clean-teamsEnabled CI deploy (Workload Identity Federation target)"
 }
 
 resource "google_service_account" "runtime" {
   account_id   = "${var.name_prefix}-runtime"
-  display_name = "v19-claudeTeamCCEY backend workload (GKE Workload Identity)"
+  display_name = "v19-GCP-clean-teamsEnabled backend workload (GKE Workload Identity)"
 }

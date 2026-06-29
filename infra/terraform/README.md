@@ -1,4 +1,4 @@
-# Terraform — v19-claudeTeamCCEY infrastructure
+# Terraform — v19-GCP-clean-teamsEnabled infrastructure
 
 Provisions the GCP runtime. This root module is the **foundation**: networking,
 Artifact Registry, Cloud SQL, Secret Manager, GKE Autopilot. **Auth** (service

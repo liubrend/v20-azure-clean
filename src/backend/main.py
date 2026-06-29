@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-app = FastAPI(title="v19-claudeTeamCCEY", version="0.1.0")
+app = FastAPI(title="v19-GCP-clean-teamsEnabled", version="0.1.0")
 
 
 @app.get("/health")
@@ -21,4 +21,4 @@ def health() -> dict[str, str]:
 @app.get("/")
 def root() -> dict[str, str]:
     """Service identity at the root path."""
-    return {"service": "v19-claudeTeamCCEY", "status": "ok"}
+    return {"service": "v19-GCP-clean-teamsEnabled", "status": "ok"}

@@ -7,6 +7,8 @@ on: [pull_request]
 jobs:
   L1-policy:                       # policy checks: lint, security, money-safety rules
     runs-on: ubuntu-latest
+    env:
+      CODE_ROOT: ${{ vars.CODE_ROOT }}   # repo/Actions variable; falls back to "src" below
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -1,4 +1,4 @@
-# v19-claudeTeamCCEY — Architecture
+# v19-GCP-clean-teamsEnabled — Architecture
 
 > Stub. Describe the system as it is built. Keep consistent with `.project/stack.yaml`
 > (the tech) and `docs/adr/` (the decisions behind it).

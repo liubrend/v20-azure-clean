@@ -3,7 +3,7 @@
 > reviewer, and CI — applies the same rules. Edit the placeholders for each project.
 
 ## Repository
-v19-claudeTeamCCEY
+v19-GCP-clean-teamsEnabled
 
 ## docs
 - domain language lives in `CONTEXT.md`

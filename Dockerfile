@@ -1,4 +1,4 @@
-# v19-claudeTeamCCEY FastAPI backend image. Runs on GKE Autopilot behind the
+# v19-GCP-clean-teamsEnabled FastAPI backend image. Runs on GKE Autopilot behind the
 # Cloud SQL Auth Proxy. Python 3.12 to match CI.
 FROM python:3.12-slim
 

@@ -1,4 +1,4 @@
-# Kubernetes manifests — v19-claudeTeamCCEY backend
+# Kubernetes manifests — v19-GCP-clean-teamsEnabled backend
 
 Deployed to GKE Autopilot. Manifests use `${VAR}` placeholders rendered by the
 backend deploy workflow with `envsubst` before `kubectl apply`.

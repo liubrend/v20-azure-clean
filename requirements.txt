@@ -1,4 +1,4 @@
-# v19-claudeTeamCCEY backend — runtime + dev/test deps.
+# v19-GCP-clean-teamsEnabled backend — runtime + dev/test deps.
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36

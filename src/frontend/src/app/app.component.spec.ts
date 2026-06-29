@@ -22,6 +22,6 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     const heading = fixture.nativeElement.querySelector('h1');
-    expect(heading.textContent).toContain('v19-claudeTeamCCEY');
+    expect(heading.textContent).toContain('v19-GCP-clean-teamsEnabled');
   });
 });

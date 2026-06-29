@@ -3,7 +3,7 @@
 variable "github_repository" {
   description = "owner/repo allowed to assume the deploy identity via WIF."
   type        = string
-  default     = "liubrend/v19-claudeTeamCCEY"
+  default     = "liubrend/v19-GCP-clean-teamsEnabled"
 }
 
 variable "github_ref" {

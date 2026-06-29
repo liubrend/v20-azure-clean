@@ -36,7 +36,7 @@ gcloud auth login
 gcloud config set project <PROJECT_ID>
 cd infra/terraform
 cp terraform.tfvars.example terraform.tfvars   # set project_id, region;
-                                                # github_repository defaults to liubrend/v19-claudeTeamCCEY
+                                                # github_repository defaults to liubrend/v19-GCP-clean-teamsEnabled
 terraform init && terraform apply               # creates the WIF pool/provider, SAs, IAM
 ```
 

@@ -1,0 +1,5 @@
+#!/bin/sh
+HOOK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROJECT_DIR=$(CDPATH= cd -- "$HOOK_DIR/.." && pwd)
+GIT_ROOT=$(git rev-parse --show-toplevel)
+python "$PROJECT_DIR/scripts/security_precommit.py" --staged --repo "$GIT_ROOT"

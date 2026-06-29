@@ -1,0 +1,8 @@
+# Terraform local state, plans, and provider cache — never committed.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log
+*.tfplan

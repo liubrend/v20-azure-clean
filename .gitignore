@@ -1,0 +1,29 @@
+# firstmate tooling is its own repo (github.com/kunchenguid/firstmate)
+firstmate/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.coverage
+.pytest_cache/
+.ruff_cache/
+
+# Node / frontend
+node_modules/
+dist/
+.angular/
+
+# Env & secrets
+.env
+*.env
+*.local
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Claude Code per-user local settings
+.claude/settings.local.json

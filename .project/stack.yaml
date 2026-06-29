@@ -1,0 +1,52 @@
+# v19-claudeTeamCCEY finalized stack and verified dev commands.
+# Entries marked TBD are still being decided — see docs/adr/ as they land.
+
+cloud:
+  provider: GCP
+
+database:
+  service: Cloud SQL
+  engine: PostgreSQL
+  why:
+    - "Relational core with strong constraints, transactions, and migrations"
+    - "Rich types (range/interval/jsonb) and recursive queries when needed"
+
+backend:
+  language: Python
+  framework: FastAPI
+frontend:
+  framework: Angular
+  version: "19"
+  source_root: src/frontend
+  hosting: Firebase Hosting   # static bundle only
+  data_path: "Angular -> FastAPI -> Cloud SQL"   # no Firestore, no direct datastore access
+  test:
+    runner: "Vitest + jsdom (AnalogJS @analogjs/vite-plugin-angular@1.19, for Angular 19)"
+    # Vitest+jsdom runs Jasmine-style specs (describe/it/expect) headless in
+    # Node — no system Chrome needed (the dev/CI env has none).
+  dev_commands:    # run from repo root; --prefix points npm at the frontend
+    install: "npm --prefix src/frontend ci"
+    test: "npm --prefix src/frontend test"      # vitest run
+    serve: "npm --prefix src/frontend start"    # ng serve
+    build: "npm --prefix src/frontend run build"
+
+compute:
+  target: GKE
+  mode: Autopilot
+  workload: FastAPI backend (containerized)
+  cloud_sql_access: Cloud SQL Auth Proxy / connector from cluster
+
+source_layout:
+  backend: src/backend
+  data: src/data
+  frontend: src/frontend
+
+dev_commands:    # verified on Python 3.12 (CI pins 3.12); see AGENTS.md for details
+  # Creates a venv, installs runtime + test deps, and the package (editable).
+  install: "python -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/pip install -e ."
+  # Runs the test suite. Needs a Docker daemon: the tests start a throwaway
+  # postgres:16-alpine via testcontainers. No live Cloud SQL required.
+  test: ".venv/bin/pytest"
+  # Serves the FastAPI app. Set DATABASE_URL to a Postgres instance first;
+  # apply migrations with `.venv/bin/alembic upgrade head`.
+  run: ".venv/bin/uvicorn backend.main:app --reload"

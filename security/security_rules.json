@@ -1,0 +1,27 @@
+{
+  "fail_threshold": "high",
+  "allowed_external_imports": [
+    "pytest",
+    "fastapi",
+    "sqlalchemy",
+    "alembic",
+    "pydantic",
+    "uvicorn",
+    "httpx",
+    "aiohttp",
+    "requests"
+  ],
+  "ignored_path_patterns": [
+    ".git/**",
+    ".pytest_cache/**",
+    "__pycache__/**",
+    "build/**",
+    "node_modules/**"
+  ],
+  "prompt_injection_allowlist_paths": [
+    "scripts/security_precommit.py"
+  ],
+  "pii_allowlist_patterns": [
+    "example.com"
+  ]
+}

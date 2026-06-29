@@ -1,0 +1,7 @@
+project:
+  name: v19-claudeTeamCCEY
+  phase: init  # init | build | release. See .project/plan.md, docs/product/, CONTEXT.md
+  repository: v19-claudeTeamCCEY
+
+team:
+  # Add team members here

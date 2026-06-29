@@ -1,0 +1,12 @@
+# Explicit GKE load-balancer health check on /health (GKE CRD). Referenced by the
+# Service annotation so the GCE Ingress probes the app's health route, not "/".
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: app-backend
+  namespace: default
+spec:
+  healthCheck:
+    type: HTTP
+    requestPath: /health
+    port: 8080

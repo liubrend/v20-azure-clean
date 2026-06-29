@@ -1,0 +1,185 @@
+# Re-runs the guardrail stack (L1–L4) on a clean machine, on every PR.
+# Make these REQUIRED status checks in branch protection so they enforce, not just advise.
+# L5 (human approval) is the "require a pull-request review before merge" branch-protection rule.
+name: agentic-sdlc-gates
+on: [pull_request]
+
+jobs:
+  L1-policy:                       # policy checks: lint, security, money-safety rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install ruff semgrep
+      - run: ruff check .
+      - name: Security scan (re-run your pre-commit hook)
+        run: |
+          if [ -x ./.claude/hooks/pre-commit-security.sh ]; then
+            ./.claude/hooks/pre-commit-security.sh
+          else
+            echo "::warning::no security hook found — add .claude/hooks/pre-commit-security.sh"
+          fi
+      - name: Resolve code root (fail closed)
+        run: |
+          ROOT="${CODE_ROOT:-src}"        # set CODE_ROOT in repo/Actions vars to match your layout
+          if [ ! -d "$ROOT" ]; then
+            echo "::error::code root '$ROOT' not found — set CODE_ROOT (fail closed; refuse to scan nothing)"; exit 1
+          fi
+          echo "CODE_ROOT=$ROOT" >> "$GITHUB_ENV"
+      - name: Hub — no hardcoded secrets (fail-closed, shared check)
+        run: bash scripts/checks/forbid.sh "$CODE_ROOT" secret
+      #- name: Money-safety — no float for money (Semgrep AST rule, fail-closed)
+      #  run: bash scripts/checks/semgrep_money.sh "$CODE_ROOT"
+
+  checks-selftest:                 # prove the checks BITE before trusting their silence (L0009)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install semgrep      # so the float-money rule is negative-tested too
+      - name: Self-test checks against known-bad/good fixtures
+        run: bash scripts/checks/selftest.sh
+
+  L2-tests:                        # test proof: spec scenarios become tests
+    # NB: the two behavioral invariants — "never exceed original size" and "halt+alert on broker
+    # error" — can't be grepped. They are enforced HERE, as spec-derived tests (CLAUDE.md → L2).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - run: pytest --cov=src --cov-fail-under=90
+
+  L2-frontend-tests:               # frontend UI tests: Vitest + jsdom (no browser)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  L1-terraform:                    # IaC: format + validate (no apply, no creds)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+
+  L2-backend-image:                # the backend image builds and imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t app-backend:ci .
+      # Prove the uvicorn target imports under the image's PYTHONPATH (catches a
+      # broken module path before deploy).
+      - run: docker run --rm app-backend:ci python -c "import backend.main; assert hasattr(backend.main, 'app')"
+
+  L1-k8s-manifests:                # schema-validate the manifests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/k8s
+    env:
+      BACKEND_IMAGE: img
+      RUNTIME_SA_EMAIL: sa@example.iam.gserviceaccount.com
+      CLOUDSQL_INSTANCE: proj:reg:inst
+      API_HOST: api.example.com
+      FRONTEND_ORIGIN: https://example.web.app
+      IMAGE_TAG: ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+      - name: Validate standard manifests
+        # GKE CRDs (managedcertificate, backendconfig) have no public schema here and
+        # are validated at apply time on the cluster — excluded to avoid false coverage.
+        run: |
+          for f in serviceaccount deployment service ingress migrate-job; do
+            envsubst < "$f.yaml" | kubeconform -strict -summary -
+          done
+
+  L3-diff-guard:                   # diff heuristics: blast radius, dangerous combinations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Blast radius + forbidden combos
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          FILES=$(git diff --name-only "$BASE"... | wc -l)
+          echo "files changed: $FILES"
+          [ "$FILES" -gt 25 ] && echo "::warning::large change ($FILES files) — extra L5 scrutiny"
+          CHANGED=$(git diff --name-only "$BASE"...)
+          if echo "$CHANGED" | grep -q "order_engine" && echo "$CHANGED" | grep -q "auth"; then
+            echo "::error::order-engine + auth in one PR — split it (CLAUDE.md)"; exit 1
+          fi
+          if echo "$CHANGED" | grep -q "order_engine" && echo "$CHANGED" | grep -qE "risk[_-]?limit"; then
+            echo "::error::order logic + risk-limit change in one PR — split it (CLAUDE.md)"; exit 1
+          fi
+          exit 0
+
+  L4-ai-review:                    # AI review gate: the reviewer subagent's rubric, in CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Reviewer findings on the diff
+        env:
+          L4_REVIEW_PROVIDER: ${{ vars.L4_REVIEW_PROVIDER || 'auto' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.5' }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          CODEX_MODEL: ${{ vars.CODEX_MODEL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-opus-4-8' }}
+        run: |
+          git diff "origin/${{ github.base_ref }}"... > /tmp/pr.diff
+          python3 scripts/checks/ai_review.py \
+            --diff /tmp/pr.diff \
+            --rubric .claude/agents/reviewer.md \
+            --output /tmp/l4-ai-review.md
+
+  # L5-human-approval:              # human gate: require an explicit PR approval
+  #   # Disabled for now. Real enforcement belongs in GitHub branch protection:
+  #   # require pull request reviews before merging, and make L1-L4 required checks.
+  #   # This job can be enabled as a visible CI guard once the repo plan/settings
+  #   # support branch protection or if we want CI to fail unapproved PRs.
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     pull-requests: read
+  #   steps:
+  #     - name: Require at least one human approval
+  #       env:
+  #         GH_TOKEN: ${{ github.token }}
+  #         PR_NUMBER: ${{ github.event.pull_request.number }}
+  #         REPOSITORY: ${{ github.repository }}
+  #       run: |
+  #         APPROVALS="$(
+  #           gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/reviews" \
+  #             --jq '[.[] | select(.state == "APPROVED") | .user.login] | unique | length'
+  #         )"
+  #         if [ "$APPROVALS" -lt 1 ]; then
+  #           echo "::error::L5 requires at least one human PR approval before merge"
+  #           exit 1
+  #         fi

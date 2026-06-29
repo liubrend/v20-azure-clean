@@ -1,0 +1,10 @@
+# Google-managed TLS certificate for the API host (GKE CRD; provisions once DNS for
+# ${API_HOST} points at the Ingress static IP).
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: app-backend-cert
+  namespace: default
+spec:
+  domains:
+    - ${API_HOST}

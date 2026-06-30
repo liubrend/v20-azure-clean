@@ -89,18 +89,20 @@ jobs:
 
   L2-backend-image:                # the service images build and serve health
     runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ github.sha }}   # tag images by commit SHA (matches deploy-backend)
     steps:
       - uses: actions/checkout@v4
       - name: Build images
         run: |
           set -euo pipefail
           cd backend
-          docker build -f api-gateway/Dockerfile -t api-gateway:ci .
-          docker build -f sample-service/Dockerfile -t sample-service:ci .
+          docker build -f api-gateway/Dockerfile -t "api-gateway:${IMAGE_TAG}" .
+          docker build -f sample-service/Dockerfile -t "sample-service:${IMAGE_TAG}" .
       - name: Smoke — sample-service serves /health
         run: |
           set -euo pipefail
-          docker run -d --name svc -p 8081:8081 sample-service:ci
+          docker run -d --name svc -p 8081:8081 "sample-service:${IMAGE_TAG}"
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8081/health | grep -q '"status":"ok"'; then
               echo "health ok"; exit 0

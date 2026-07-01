@@ -112,3 +112,5 @@ cd infra/terraform && terraform init -backend=false && terraform validate
 
 Plan → Develop → Test → Review (L4 reviewer subagent) → Deploy (human-approved,
 recorded in `docs/audit/log.md`). See `.project/plan.md` and `AGENTS.md`.
+
+<!-- CI gate check: verifying L4 AI review runs with ANTHROPIC_API_KEY set. -->

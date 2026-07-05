@@ -3,5 +3,19 @@
 		"type": "command",
 		"command": "bash .claude/statusline.sh"
 	},
-	"teammateMode": "tmux"
+	"teammateMode": "tmux",
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": ".*",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python scripts/pretool_security_check.py",
+						"timeout": 15
+					}
+				]
+			}
+		]
+	}
 }

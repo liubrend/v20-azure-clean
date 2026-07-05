@@ -23,6 +23,16 @@ Severity rules:
 - `low`: small correctness, clarity, or future-maintenance issue.
 - `info`: non-blocking observation.
 
+## Forced-high scope: docs and project structure
+
+Any diff touching a file outside `src/` and `tests/` (docs, `AGENTS.md`/`CLAUDE.md`,
+`.project/`, schemas, infra, CI/workflows, runbooks, etc.) is **always** `high`
+severity, even if the change looks correct, small, or purely cosmetic. This is a
+policy gate, not a code-quality judgment — do not downgrade it because the content
+is fine. Report it as a `high` finding noting the change requires human PR review
+and approval. **Never** treat such a PR as auto-approvable; this reviewer's output
+can surface findings but must not stand in for the required human sign-off.
+
 ## High-severity bar (avoid false positives)
 
 A `high` blocks the PR, so it must clear a higher bar than "worth checking":

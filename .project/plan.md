@@ -3,6 +3,9 @@
 2. **Develop** — implement to the spec; keep diffs small and single-purpose.
 3. **Test** — every spec scenario (Given/When/Then) becomes a test; all green before review.
 4. **Review** — the `reviewer` subagent (L4) produces findings; high-severity escalates.
+   Any change outside `src/` and `tests/` (docs, project structure, config,
+   infra, CI) is forced **high** and always escalates to L5 — the reviewer
+   subagent must never approve or merge these on its own.
 5. **Deploy** — a human approves and records the decision in `docs/audit/log.md`. Agents never self-approve.
 
 ## Test and validation

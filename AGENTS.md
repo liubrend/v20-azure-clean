@@ -27,9 +27,18 @@ v20-Azure-clean-teamsEnabled
 ## Invariants (HARD rules - never violate)
 - Never mix auth/credential changes with other changes in one PR.
 - Secrets come from env — never hardcode keys, never log them.
+- Any change to documentation or project structure outside `src/` and `tests/`
+  (docs, `AGENTS.md`/`CLAUDE.md`, `.project/`, schemas, infra, CI/workflows,
+  runbooks, etc.) is forced **HIGH** severity, regardless of how small or
+  correct it looks. It requires a human-reviewed and human-approved PR. The L4
+  reviewer may report findings but must never approve or merge it automatically.
 
 ## What requires human approval (L5)
-Any change touching: auth/credentials, risk limits, or anything the L4 reviewer marks **high** severity. These go through a PR and a recorded approval — never a direct push to `main`.
+Any change touching: auth/credentials, risk limits, anything the L4 reviewer marks
+**high** severity, or any documentation/structure change outside `src/` and
+`tests/` (forced **high** per the invariant above). These go through a PR and a
+recorded human approval — never a direct push to `main`, and never an
+automated-only review or approval.
 
 ## For agents working here
 - Read the relevant `docs/specs/*.md` and this file before editing.

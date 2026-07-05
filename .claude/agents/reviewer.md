@@ -10,7 +10,7 @@ context or repository:
 - `AGENTS.md` / `CLAUDE.md`: L1 policy, invariants, and human-approval rules.
 - `.project/plan.md`: L1-L5 validation gates.
 - `.project/stack.yaml`: source of truth for stack and dev commands.
-- `docs/features/*.md`: feature acceptance criteria.
+- `docs/specs/*.md`: feature acceptance criteria.
 - `docs/adr/*.md`: architectural decisions.
 
 Severity rules:

@@ -1,5 +1,5 @@
 ## The workflow (non-negotiable)
-1. **Plan** — write a spec in `docs/features/` *before* code. No spec, no build. (use `docs/features/spec-template.md` as the starting point; CLAUDE.md lists the full doc set.)
+1. **Plan** — write a spec in `docs/specs/` *before* code. No spec, no build. (use `docs/specs/spec-template.md` as the starting point; CLAUDE.md lists the full doc set.)
 2. **Develop** — implement to the spec; keep diffs small and single-purpose.
 3. **Test** — every spec scenario (Given/When/Then) becomes a test; all green before review.
 4. **Review** — the `reviewer` subagent (L4) produces findings; high-severity escalates.

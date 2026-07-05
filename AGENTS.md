@@ -18,7 +18,7 @@ v20-Azure-clean-teamsEnabled
 |---|---|
 | `docs/product/prd.md` | Product requirements and user journeys |
 | `docs/product/architecture.md` | System architecture and data flow |
-| `docs/features/spec-001.md` | First feature spec (one user-facing capability, with Given/When/Then scenarios) |
+| `docs/specs/spec-001.md` | First feature spec (one user-facing capability, with Given/When/Then scenarios) |
 | `docs/stories/story-*.md` | Story breakdowns with acceptance criteria |
 | `.project/config.yaml` | Project name, phase, team |
 | `.project/stack.yaml` | Finalized stack and verified dev commands |
@@ -32,7 +32,7 @@ v20-Azure-clean-teamsEnabled
 Any change touching: auth/credentials, risk limits, or anything the L4 reviewer marks **high** severity. These go through a PR and a recorded approval — never a direct push to `main`.
 
 ## For agents working here
-- Read the relevant `docs/features/*.md` and this file before editing.
+- Read the relevant `docs/specs/*.md` and this file before editing.
 - Make the smallest change that satisfies the spec.
 - If a invariant blocks the task, **stop and ask** — do not work around it.
 

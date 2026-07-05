@@ -74,7 +74,7 @@ Served by `sample-service` (reached through the gateway at `/api/...`):
 1. Fill the placeholders: `infra/terraform/terraform.tfvars` (copy from `.example`;
    set `subscription_id`, `location`).
 2. Build/test: `cd backend && ./gradlew test`; `npm --prefix src/frontend ci && npm --prefix src/frontend test`.
-3. Define the domain in `CONTEXT.md` and write the first spec in `docs/features/`.
+3. Define the domain in `CONTEXT.md` and write the first spec in `docs/specs/`.
 4. Bootstrap Azure + GitHub OIDC and set the repo variables/secrets so the CI gates and
    deploy workflows activate (see `infra/terraform/README.md`).
 

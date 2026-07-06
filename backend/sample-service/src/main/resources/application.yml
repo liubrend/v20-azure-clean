@@ -34,6 +34,13 @@ azure:
     connection-string: ${BLOB_CONNECTION_STRING:}
     container: ${BLOB_CONTAINER:attachments}
 
+# Agent guardrails (ASI06 memory-integrity signing). No agent exists in this service
+# yet -- the key stays blank so the service still boots; MemoryIntegrityGuard fails
+# closed at first sign/verify call if it's still unset when something does use it.
+agent:
+  memory:
+    signing-key: ${AGENT_MEMORY_SIGNING_KEY:}
+
 # Let the service start even when DATABASE_URL is unset (datasource initialized lazily).
 spring.sql.init.mode: never
 

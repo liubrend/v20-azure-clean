@@ -1,0 +1,19 @@
+{
+  "_comment": "ASI04 supply-chain manifest. Checked by scripts/checks/ai_sbom_check.py (L1-policy job in ci.yml). Add an entry here in the same PR that adds/changes a model dependency, a tool definition, or a data source the app or pipeline relies on -- that's what lets this check catch drift instead of rubber-stamping it.",
+  "models": [
+    {
+      "name": "l4-ai-reviewer-anthropic",
+      "provider": "anthropic",
+      "version": "claude-opus-4-8",
+      "used_by": "scripts/checks/ai_review.py (CI L4 gate, not runtime)"
+    },
+    {
+      "name": "l4-ai-reviewer-openai",
+      "provider": "openai",
+      "version": "gpt-5.5",
+      "used_by": "scripts/checks/ai_review.py (CI L4 gate, not runtime)"
+    }
+  ],
+  "tool_definitions": [],
+  "data_sources": []
+}

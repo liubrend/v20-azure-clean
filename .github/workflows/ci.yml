@@ -29,6 +29,10 @@ jobs:
         run: bash scripts/checks/forbid.sh "$CODE_ROOT" secret
       #- name: Money-safety — no float for money (Semgrep AST rule, fail-closed)
       #  run: bash scripts/checks/semgrep_money.sh "$CODE_ROOT"
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: ASI04 — AI supply chain manifest (models pinned, tool schemas unmodified, data sources classified)
+        run: python3 scripts/checks/ai_sbom_check.py
 
   checks-selftest:                 # prove the checks BITE before trusting their silence (L0009)
     runs-on: ubuntu-latest

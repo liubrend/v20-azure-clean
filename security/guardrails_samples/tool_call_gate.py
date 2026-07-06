@@ -71,9 +71,11 @@ if __name__ == "__main__":
     from pathlib import Path
 
     def validate_write_file(kwargs: dict) -> Optional[str]:
+        if Path(kwargs["relative_path"]).is_absolute():
+            return f"relative_path must not be absolute: {kwargs['relative_path']}"
         allowed_root = Path(kwargs["allowed_root"]).resolve()
         target = (allowed_root / kwargs["relative_path"]).resolve()
-        if allowed_root not in target.parents and target != allowed_root:
+        if not target.is_relative_to(allowed_root):
             return f"path escapes allowed root: {target}"
         if target.suffix.lower() not in {".txt", ".csv", ".json"}:
             return f"extension not allowed: {target.suffix}"

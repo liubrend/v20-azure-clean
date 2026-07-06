@@ -1,4 +1,4 @@
-# v20-Azure-clean-teamsEnabled finalized stack and verified dev commands.
+# v20-azure-clean finalized stack and verified dev commands.
 
 cloud:
   provider: Azure

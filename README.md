@@ -1,6 +1,6 @@
-# v20-Azure-clean-teamsEnabled
+# v20-azure-clean
 
-[![CI](https://github.com/liubrend/v20-Azure-clean-teamsEnabled/actions/workflows/ci.yml/badge.svg)](https://github.com/liubrend/v20-Azure-clean-teamsEnabled/actions/workflows/ci.yml)
+[![CI](https://github.com/liubrend/v20-azure-clean/actions/workflows/ci.yml/badge.svg)](https://github.com/liubrend/v20-azure-clean/actions/workflows/ci.yml)
 
 Project template bootstrapped from the [v17-hub](https://github.com/liubrend/v17-hub)
 setup: an **agentic-SDLC** scaffold with an L1–L5 governance framework, CI/CD,

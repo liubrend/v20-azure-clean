@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthController {
 
-    private static final String SERVICE = "v20-Azure-clean-teamsEnabled";
+    private static final String SERVICE = "v20-azure-clean";
 
     /** Liveness probe used by the Container Apps health check. */
     @GetMapping("/health")

@@ -1,4 +1,4 @@
-# Terraform — v20-Azure-clean-teamsEnabled infrastructure
+# Terraform — v20-azure-clean infrastructure
 
 Provisions the Azure runtime. This root module is the **foundation**: resource group,
 Container Registry (ACR), Container Apps environment + the two microservices, Azure SQL
@@ -37,7 +37,7 @@ az login
 az account set --subscription <SUBSCRIPTION_ID>
 cd infra/terraform
 cp terraform.tfvars.example terraform.tfvars   # set subscription_id, location;
-                                                # github_repository defaults to liubrend/v20-Azure-clean-teamsEnabled
+                                                # github_repository defaults to liubrend/v20-azure-clean
 terraform init && terraform apply               # creates ACR, SQL, storage, Key Vault, identities, apps
 ```
 

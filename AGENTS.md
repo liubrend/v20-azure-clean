@@ -3,7 +3,7 @@
 > reviewer, and CI — applies the same rules. Edit the placeholders for each project.
 
 ## Repository
-v20-Azure-clean-teamsEnabled
+v20-azure-clean
 
 ## docs
 - domain language lives in `CONTEXT.md`

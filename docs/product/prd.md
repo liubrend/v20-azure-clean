@@ -1,4 +1,4 @@
-# v20-Azure-clean-teamsEnabled — Product Requirements
+# v20-azure-clean — Product Requirements
 
 > Stub. Replace each section with the real product definition. Keep consistent with
 > `CONTEXT.md` (domain language) and `docs/product/architecture.md`.

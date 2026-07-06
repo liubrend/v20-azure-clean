@@ -27,7 +27,7 @@ class HealthControllerTest {
     void rootIdentifiesService() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.service").value("v20-Azure-clean-teamsEnabled"))
+                .andExpect(jsonPath("$.service").value("v20-azure-clean"))
                 .andExpect(jsonPath("$.status").value("ok"));
     }
 }

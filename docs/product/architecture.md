@@ -1,4 +1,4 @@
-# v20-Azure-clean-teamsEnabled — Architecture
+# v20-azure-clean — Architecture
 
 > Stub. Describe the system as it is built. Keep consistent with `.project/stack.yaml`
 > (the tech) and `docs/adr/` (the decisions behind it).

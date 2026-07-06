@@ -42,7 +42,7 @@ variable "blob_container" {
 variable "github_repository" {
   description = "owner/repo allowed to assume the deploy identity via GitHub OIDC."
   type        = string
-  default     = "liubrend/v20-Azure-clean-teamsEnabled"
+  default     = "liubrend/v20-azure-clean"
 }
 
 variable "github_ref" {

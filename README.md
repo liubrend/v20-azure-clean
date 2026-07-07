@@ -23,13 +23,15 @@ git hooks, security checks, and **Azure** infra. The application slice is a
 | `AGENTS.md` / `CLAUDE.md` | L1 policy: standards every agent, the L4 reviewer, and CI apply |
 | `.project/` | Machine-readable metadata: `config.yaml`, `stack.yaml`, `plan.md` |
 | `CONTEXT.md` | Domain glossary (ubiquitous language) — fill in per project |
-| `docs/` | `product/` (prd, architecture), `features/` (specs), `adr/`, `context/`, `audit/` |
+| `docs/` | `product/` (prd, architecture), `specs/`, `adr/`, `context/`, `audit/`, `security/` (security intents), `data-model/` |
 | `.github/workflows/` | `ci.yml` (L1–L4 gates, on PR) + `deploy-{backend,frontend}.yml` |
 | `.githooks/` + `scripts/` | pre-commit security scan and shared fail-closed checks |
 | `security/` | `security_rules.json` consumed by the pre-commit scanner |
 | `infra/terraform/` | Azure foundation (ACR, Container Apps, Azure SQL, Blob, Key Vault, OIDC) |
 | `backend/` | Gradle multi-module Spring Boot services + their Dockerfiles |
 | `src/frontend/` | Angular workspace (Karma/Jasmine, Static Web Apps config) |
+| `tests/` | `unit/` and `integration/` cross-cutting test suites |
+| `migrations/` | Archival SQL from the old DB backup (never executed by the app; runtime schema is Liquibase in `backend/`) |
 
 ## Architecture
 

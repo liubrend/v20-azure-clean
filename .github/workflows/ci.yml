@@ -11,12 +11,17 @@ jobs:
       CODE_ROOT: ${{ vars.CODE_ROOT }}   # repo/Actions variable; falls back to "src" below
     steps:
       - uses: actions/checkout@v4
-      - name: Security scan (re-run your pre-commit hook)
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Security scan (re-run the pre-commit hook's scanner: scripts/security_precommit.py)
         run: |
-          if [ -x ./.claude/hooks/pre-commit-security.sh ]; then
-            ./.claude/hooks/pre-commit-security.sh
+          BASE="origin/${{ github.base_ref }}"
+          CHANGED=$(git diff --name-only --diff-filter=ACMR "$BASE"...)
+          if [ -z "$CHANGED" ]; then
+            echo "no changed files to scan"
           else
-            echo "::warning::no security hook found — add .claude/hooks/pre-commit-security.sh"
+            python3 scripts/security_precommit.py $CHANGED
           fi
       - name: Resolve code root (fail closed)
         run: |
@@ -29,8 +34,6 @@ jobs:
         run: bash scripts/checks/forbid.sh "$CODE_ROOT" secret
       #- name: Money-safety — no float for money (Semgrep AST rule, fail-closed)
       #  run: bash scripts/checks/semgrep_money.sh "$CODE_ROOT"
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
       - name: ASI04 — AI supply chain manifest (models pinned, tool schemas unmodified, data sources classified)
         run: python3 scripts/checks/ai_sbom_check.py
 

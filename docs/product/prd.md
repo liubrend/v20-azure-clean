@@ -18,5 +18,10 @@
 ## Out of scope (for now)
 <What we are deliberately not building yet.>
 
+## Success Metrics
+<How we know this worked. Concrete, measurable signals tied to the Goal/MVP —
+not vanity metrics. For each: metric, target, how/where measured.>
+- <Metric> — target: <value/threshold> — measured via: <source, e.g. dashboard, log, survey>
+
 ## Roadmap
 <Later phases, in rough order.>

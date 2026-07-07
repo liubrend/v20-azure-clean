@@ -9,10 +9,10 @@
 5. **Deploy** — a human approves and records the decision in `docs/audit/log.md`. Agents never self-approve.
 
 ## Test and validation
-L1: Policy checks — security, compliance, architecture rules, automated
-L2: Test proof — unit + integration, bound to the spec, automated
-L3: Diff heuristics — file count, ownership, blast radius, automated
-L4: AI review gate — model feedback tuned for risk, automated by agent: reviewer
-L5: Human escalation — high-risk / low-confidence only, human only
+- L1: Policy checks — security, compliance, architecture rules, automated
+- L2: Test proof — unit + integration, bound to the spec, automated
+- L3: Diff heuristics — file count, ownership, blast radius, automated
+- L4: AI review gate — model feedback tuned for risk, automated by agent: reviewer
+- L5: Human escalation — high-risk / low-confidence only, human only
 **Must apply all L1-L4 automatically and leave L5 to human review**
 

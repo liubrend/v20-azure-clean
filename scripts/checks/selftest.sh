@@ -32,7 +32,7 @@ expect_fail() {
   fi
 }
 
-mkdir -p "$tmp/clean" "$tmp/secret-bad" "$tmp/market-bad"
+mkdir -p "$tmp/clean" "$tmp/secret-bad" "$tmp/market-bad" "$tmp/scanner-bad-java" "$tmp/scanner-bad-tf" "$tmp/scanner-clean-java"
 
 cat > "$tmp/clean/app.py" <<'EOF'
 import os
@@ -41,9 +41,9 @@ API_KEY = os.environ["API_KEY"]
 order_type = "limit"
 EOF
 
-cat > "$tmp/secret-bad/app.py" <<'EOF'
-API_KEY = "hardcoded-demo-secret"
-EOF
+# Assembled via printf so this script itself never contains a matchable
+# key = "value" assignment (the scanner scans this file too).
+printf 'API_KEY = "%s"\n' "hardcoded-demo-secret" > "$tmp/secret-bad/app.py"
 
 cat > "$tmp/market-bad/app.py" <<'EOF'
 order_type = "market"
@@ -53,6 +53,28 @@ expect_pass "clean secret scan" bash "$here/forbid.sh" "$tmp/clean" secret
 expect_fail "hardcoded secret scan" bash "$here/forbid.sh" "$tmp/secret-bad" secret
 expect_pass "clean market scan" bash "$here/forbid.sh" "$tmp/clean" market
 expect_fail "market order scan" bash "$here/forbid.sh" "$tmp/market-bad" market
+
+# --- security_precommit.py (the pre-commit / CI L1 scanner) must BITE too ---
+# Regression guard for the blind spot where non-Python extensions (.java, .tf)
+# were silently skipped: a skipped file exits 0 and these expect_fail cases catch it.
+scanner="$here/../security_precommit.py"
+
+printf 'public class Config { static final String API_KEY = "%s"; }\n' \
+  "fixture0bad0secret0abcdef" > "$tmp/scanner-bad-java/Config.java"
+printf 'password = "%s"\n' "fixture0bad0secret0abcdef" > "$tmp/scanner-bad-tf/main.tf"
+
+cat > "$tmp/scanner-clean-java/Config.java" <<'EOF'
+public class Config {
+    static final String API_KEY = System.getenv("API_KEY");
+}
+EOF
+
+expect_fail "scanner bites hardcoded secret in .java" \
+  python3 "$scanner" "$tmp/scanner-bad-java/Config.java"
+expect_fail "scanner bites hardcoded secret in .tf" \
+  python3 "$scanner" "$tmp/scanner-bad-tf/main.tf"
+expect_pass "scanner passes clean .java" \
+  python3 "$scanner" "$tmp/scanner-clean-java/Config.java"
 
 cat > "$tmp/pr.diff" <<'EOF'
 diff --git a/example.py b/example.py

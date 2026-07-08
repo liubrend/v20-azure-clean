@@ -1,8 +1,14 @@
 # Re-runs the guardrail stack (L1–L4) on a clean machine, on every PR.
 # Make these REQUIRED status checks in branch protection so they enforce, not just advise.
 # L5 (human approval) is the "require a pull-request review before merge" branch-protection rule.
+# Also runs on push to main: without branch protection a direct push skips PR gates entirely,
+# so this is the post-hoc detection pass — and deploy workflows require THIS workflow to
+# succeed on the pushed SHA before they deploy (see deploy-*.yml "gates" job).
 name: agentic-sdlc-gates
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 jobs:
   L1-policy:                       # policy checks: security, money-safety rules
@@ -16,7 +22,13 @@ jobs:
         with: { python-version: "3.12" }
       - name: "Security scan (re-run the pre-commit hook's scanner: scripts/security_precommit.py)"
         run: |
-          BASE="origin/${{ github.base_ref }}"
+          # PR: diff vs base branch. Push to main: diff vs the pre-push tip (post-hoc detection).
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
+          fi
           CHANGED=$(git diff --name-only --diff-filter=ACMR "$BASE"...)
           if [ -z "$CHANGED" ]; then
             echo "no changed files to scan"
@@ -135,7 +147,12 @@ jobs:
         with: { fetch-depth: 0 }
       - name: Blast radius + forbidden combos
         run: |
-          BASE="origin/${{ github.base_ref }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
+          fi
           FILES=$(git diff --name-only "$BASE"... | wc -l)
           echo "files changed: $FILES"
           [ "$FILES" -gt 25 ] && echo "::warning::large change ($FILES files) — extra L5 scrutiny"
@@ -165,7 +182,16 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-opus-4-8' }}
         run: |
-          git diff "origin/${{ github.base_ref }}"... > /tmp/pr.diff
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
+          fi
+          git diff "$BASE"... > /tmp/pr.diff
+          if [ ! -s /tmp/pr.diff ]; then
+            echo "empty diff — nothing to review"; exit 0
+          fi
           python3 scripts/checks/ai_review.py \
             --diff /tmp/pr.diff \
             --rubric .claude/agents/reviewer.md \

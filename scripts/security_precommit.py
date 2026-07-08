@@ -19,19 +19,38 @@ DEFAULT_RULES = PROJECT_ROOT / "security" / "security_rules.json"
 
 TEXT_EXTENSIONS = {
     ".cfg",
+    ".conf",
+    ".css",
+    ".env",
+    ".gradle",
+    ".html",
     ".ini",
+    ".java",
+    ".js",
     ".json",
+    ".jsx",
+    ".kt",
+    ".kts",
     ".md",
+    ".mjs",
+    ".properties",
     ".ps1",
     ".py",
+    ".scss",
     ".sh",
+    ".sql",
+    ".tf",
+    ".tfvars",
     ".toml",
     ".ts",
     ".tsx",
     ".txt",
+    ".xml",
     ".yaml",
     ".yml",
 }
+
+SCANNABLE_FILENAMES = {"AGENTS.md", "CLAUDE.md", "pre-commit", "Dockerfile", ".env"}
 
 LOCAL_IMPORTS = {"tests", "scripts", "app", "frontend", "backend"}
 SEVERITY_ORDER = {"info": 0, "warn": 1, "medium": 2, "high": 3}
@@ -145,7 +164,7 @@ def is_scannable(path: str, ignored_patterns: Iterable[str]) -> bool:
         return False
     if Path(normalized).suffix.lower() in TEXT_EXTENSIONS:
         return True
-    return Path(normalized).name in {"AGENTS.md", "CLAUDE.md", "pre-commit"}
+    return Path(normalized).name in SCANNABLE_FILENAMES
 
 
 def is_review_path(path: str) -> bool:

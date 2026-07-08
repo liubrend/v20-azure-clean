@@ -12,11 +12,44 @@ on:
 
 permissions:
   contents: read
+  actions: read   # gates job queries workflow-run conclusions
 
 jobs:
+  gates:
+    # No branch protection on this plan, so deploys are the enforcement point:
+    # require the agentic-sdlc-gates (L1–L4) run on this exact SHA to succeed
+    # before anything ships. Fail closed on timeout or any non-success conclusion.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require agentic-sdlc-gates success on this SHA (fail closed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            RUN=$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}" \
+              --jq '[.workflow_runs[] | select(.name=="agentic-sdlc-gates")][0] // empty')
+            if [ -n "$RUN" ]; then
+              STATUS=$(echo "$RUN" | jq -r .status)
+              CONCLUSION=$(echo "$RUN" | jq -r .conclusion)
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" = "success" ]; then
+                  echo "gates passed on ${{ github.sha }}"; exit 0
+                fi
+                echo "::error::agentic-sdlc-gates concluded '$CONCLUSION' on ${{ github.sha }} — refusing to deploy"; exit 1
+              fi
+              echo "gates run in progress ($STATUS), waiting…"
+            else
+              echo "no gates run found yet for ${{ github.sha }}, waiting…"
+            fi
+            sleep 30
+          done
+          echo "::error::agentic-sdlc-gates did not complete within 30 minutes — fail closed"; exit 1
+
   deploy:
     # Skip until the bootstrap has set the repo variables / SWA token.
     if: ${{ vars.API_HOST != '' }}
+    needs: gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

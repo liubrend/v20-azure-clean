@@ -1,0 +1,29 @@
+# SCA: automated dependency-update PRs + vulnerability alerts. Each PR runs the
+# full gate stack like any other change. Grouped to keep PR volume sane.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /src/frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend:
+        patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: /src/backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      backend:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

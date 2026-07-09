@@ -67,6 +67,44 @@ jobs:
       - name: ASI04 — AI supply chain manifest (models pinned, tool schemas unmodified, data sources classified)
         run: python3 scripts/checks/ai_sbom_check.py
 
+  L1-supply-chain:                 # SCA: block newly-introduced vulnerable deps (PR gate) +
+    runs-on: ubuntu-latest         # scan the tree for known-vuln deps / misconfig (advisory)
+    permissions:
+      contents: read
+      pull-requests: write         # dependency-review posts its summary on the PR
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency review (PR only — fails on a newly-added HIGH+ vulnerable dep)
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+      - name: Trivy filesystem scan (deps + misconfig; advisory — see promotion note)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          scanners: vuln,misconfig,secret
+          exit-code: "0"           # advisory: promote to "1" once the tree is baseline-clean
+          format: table
+
+  L1-image-scan:                   # image CVE scan (advisory): build sample-service, Trivy it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sample-service image
+        run: docker build -f src/backend/sample-service/Dockerfile -t sample-service:scan src/backend
+      - name: Trivy image scan (advisory — base-image + app-layer CVEs)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: sample-service:scan
+          severity: HIGH,CRITICAL
+          exit-code: "0"           # advisory: base images carry CVEs; promote once a patch/floor policy exists
+          format: table
+
   L1-gitleaks:                     # secret scan with a maintained ruleset (complements forbid.sh's
     runs-on: ubuntu-latest         # narrow regex: cloud connection strings, provider tokens, entropy)
     permissions:

@@ -158,3 +158,26 @@ record depends on the Azure bootstrap beyond the deploy jobs becoming active.)
 To inspect or change the rule:
 `gh api repos/liubrend/v20-azure-clean/rulesets` (list),
 `gh api repos/liubrend/v20-azure-clean/rulesets/<id>` (detail).
+
+## Supply-chain scanning
+
+Layered on top of the homegrown L1 scanners:
+
+- **SCA** — Dependabot (`.github/dependabot.yml`) opens weekly update PRs and
+  raises vulnerability alerts for npm, Gradle, and Actions. `L1-supply-chain`
+  runs `dependency-review` on every PR and **fails** if the diff introduces a
+  new `high`+ vulnerable dependency.
+- **SAST** — CodeQL (`.github/workflows/codeql.yml`) analyzes the Java and
+  TypeScript code on PR, push, and weekly; results appear in the **Security**
+  tab.
+- **Image / tree CVEs** — Trivy scans the repo tree (`L1-supply-chain`) and the
+  built `sample-service` image (`L1-image-scan`) for HIGH/CRITICAL CVEs and
+  misconfig.
+
+**Advisory today, by design.** CodeQL, the Trivy jobs, and `dependency-review`
+are **not** in the required-checks ruleset yet — a base-image CVE or a finding in
+the current demo code would otherwise block every PR on day one (same reasoning
+as `L4-ai-review`). They run and surface findings now. **Promote to required**
+once the baseline is clean: flip the Trivy `exit-code` to `"1"`, and add
+`L1-supply-chain`, `L1-image-scan`, and the two `CodeQL / analyze (...)` contexts
+to the `protect-main` ruleset's required status checks.

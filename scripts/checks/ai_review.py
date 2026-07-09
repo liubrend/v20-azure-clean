@@ -216,7 +216,7 @@ def app_roots() -> tuple[str, ...]:
     # Paths under these roots are application code; anything else (docs,
     # workflows, scripts, security config, infra, ...) is the forced-high
     # scope of CLAUDE.md. Override with L4_APP_ROOTS (space-separated).
-    raw = os.environ.get("L4_APP_ROOTS", "src tests backend")
+    raw = os.environ.get("L4_APP_ROOTS", "src tests")
     return tuple(f"{root.rstrip('/')}/" for root in raw.split())
 
 

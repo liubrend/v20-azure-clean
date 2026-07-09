@@ -1,4 +1,4 @@
-# Multi-stage build for the api-gateway service. Build context is the backend/ root
+# Multi-stage build for the api-gateway service. Build context is the src/backend/ root
 # (multi-module Gradle build). Runs on Azure Container Apps.
 #   docker build -f api-gateway/Dockerfile -t api-gateway:dev .
 FROM eclipse-temurin:21-jdk AS build

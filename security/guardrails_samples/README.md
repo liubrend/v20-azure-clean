@@ -4,7 +4,7 @@ This directory is **sample code, not production code**. It is not imported by
 any service, not run in CI, and not covered by `security/ai_sbom.json`.
 
 The actual runtime guards for this repo's Java service are the real thing:
-`backend/sample-service/src/main/java/com/v20azure/sample/agent/` (`IntentGuard`,
+`src/backend/sample-service/src/main/java/com/v20azure/sample/agent/` (`IntentGuard`,
 `MemoryIntegrityGuard`, `ToolCallGate`), with tests under the matching `src/test`
 path. Those are what to extend when an agent is actually wired into
 `sample-service`.

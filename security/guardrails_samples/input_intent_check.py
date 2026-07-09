@@ -2,7 +2,7 @@
 SAMPLE CODE -- not wired into any service. See README.md in this directory.
 
 ASI01 (Agent Goal Hijack) runtime guard. Python mirror of
-backend/sample-service/.../agent/IntentGuard.java -- same two-layer design:
+src/backend/sample-service/.../agent/IntentGuard.java -- same two-layer design:
 a free pattern scan first, then an optional semantic judge for phrasing the
 patterns don't catch.
 """

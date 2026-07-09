@@ -25,7 +25,7 @@ backend:
   architecture: microservices
   api_style: RESTful
   migrations: Liquibase
-  source_root: backend
+  source_root: src/backend
   services:
     - name: api-gateway
       role: "edge — routes /api/** to sample-service, owns CORS; Spring Cloud Gateway"
@@ -58,15 +58,15 @@ compute:
   identity: user-assigned managed identity (runtime = ACR pull + KV read; deploy = GitHub OIDC)
 
 source_layout:
-  backend: backend            # Gradle multi-module (api-gateway, sample-service)
+  backend: src/backend        # Gradle multi-module (api-gateway, sample-service)
   frontend: src/frontend
 
 dev_commands:    # verified on Java 21 (Temurin); CI pins Java 21
   # Builds both microservices.
-  install: "cd backend && ./gradlew build"
+  install: "cd src/backend && ./gradlew build"
   # Runs the unit test suite (JUnit 5 + Mockito). No DB/Docker required.
-  test: "cd backend && ./gradlew test"
+  test: "cd src/backend && ./gradlew test"
   # Integration tests spin a throwaway SQL Server via Testcontainers (needs Docker).
-  integration_test: "cd backend && ./gradlew :sample-service:integrationTest"
+  integration_test: "cd src/backend && ./gradlew :sample-service:integrationTest"
   # Serves a service locally. Set DATABASE_URL / BLOB_CONNECTION_STRING for real data.
-  run: "cd backend && ./gradlew :sample-service:bootRun"
+  run: "cd src/backend && ./gradlew :sample-service:bootRun"

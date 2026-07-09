@@ -18,7 +18,7 @@
   ],
   "prompt_injection_allowlist_paths": [
     "scripts/security_precommit.py",
-    "backend/sample-service/src/test/java/com/v20azure/sample/agent/*.java",
+    "src/backend/sample-service/src/test/java/com/v20azure/sample/agent/*.java",
     "security/guardrails_samples/*.py"
   ],
   "pii_allowlist_patterns": [

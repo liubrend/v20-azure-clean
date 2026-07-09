@@ -121,3 +121,30 @@ cd infra/terraform && terraform init -backend=false && terraform validate
 
 Plan → Develop → Test → Review (L4 reviewer subagent) → Deploy (human-approved,
 recorded in `docs/audit/log.md`). See `.project/plan.md` and `AGENTS.md`.
+
+## Gate enforcement & branch protection
+
+The `agentic-sdlc-gates` workflow (L1–L4) runs on every PR **and** on push to
+`main`. Deploys are additionally gated: `deploy-{backend,frontend}.yml` refuse
+to ship unless that workflow succeeded on the exact pushed SHA (fail-closed).
+
+**Known gap — the gates are not yet *required* checks.** Making CI a true merge
+blocker needs a branch-protection rule on `main`, which GitHub only allows on a
+**private repo under a paid plan** (Pro/Team/Enterprise) or on a **public repo**.
+This repo is private on a free plan, so a PR can currently be merged while its
+checks are still pending or failing (this has happened). Until that is resolved,
+**the deploy-time gate is the enforcement backstop** — unverified code can land
+on `main`, but it cannot deploy.
+
+Decision required (pick one), then the required-status-checks rule can be applied
+via `gh api repos/liubrend/v20-azure-clean/branches/main/protection`:
+
+- **Upgrade to GitHub Pro** — keeps the repo private; enables branch protection.
+- **Make the repo public** — free; exposes all code, history, and CI config.
+- **Stay as-is** — deploy-time gate remains the only enforcement; accept that
+  `main` can receive unverified merges.
+
+Required checks to enforce once enabled: `L1-policy`, `L1-gitleaks`,
+`L1-terraform`, `L2-tests`, `L2-frontend-tests`, `L2-backend-image`,
+`L3-diff-guard`, `L4-ai-review`, `checks-selftest`. L5 (human approval) maps to
+the "require a pull-request review before merge" branch-protection setting.

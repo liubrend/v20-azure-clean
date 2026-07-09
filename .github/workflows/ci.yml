@@ -174,6 +174,7 @@ jobs:
         with: { python-version: "3.12" }
       - name: Reviewer findings on the diff
         env:
+          GH_TOKEN: ${{ github.token }}
           L4_REVIEW_PROVIDER: ${{ vars.L4_REVIEW_PROVIDER || 'auto' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.5' }}
@@ -185,6 +186,19 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="origin/${{ github.base_ref }}"
           else
+            # Push to main. If this SHA landed via a merged PR, L4 already ran at
+            # PR time and the human merge IS the L5 approval — re-running would
+            # re-escalate forced-high findings the human already signed off on,
+            # turning main red and blocking deploys. Only review direct pushes
+            # (the bypass this post-hoc run exists to catch). A gh/API failure
+            # here fails the job — fail closed, never silently skip the review.
+            MERGED_PR=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+              --jq '[.[] | select(.merged_at != null)][0].number // empty')
+            if [ -n "$MERGED_PR" ]; then
+              echo "SHA landed via merged PR #$MERGED_PR — L4 reviewed it at PR time; human merge = L5 approval. Skipping post-hoc review."
+              exit 0
+            fi
+            echo "::warning::direct push to main with no merged PR — post-hoc L4 review (gates should have run on a PR)"
             BASE="${{ github.event.before }}"
             git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
           fi

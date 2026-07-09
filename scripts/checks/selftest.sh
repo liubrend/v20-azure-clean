@@ -92,6 +92,31 @@ expect_fail "diff-guard: order_engine + risk_limit" \
 expect_pass "diff-guard: author docs are not auth" \
   bash -c "printf 'docs/authors.md\nREADME.md\n' | bash '$dg'"
 
+# --- record_deploy_approval.sh row builder (dry-run, no git) ---
+rec="$here/../record_deploy_approval.sh"
+rec_row=$(RECORD_DRY_RUN=1 DEPLOY_ENV="production (backend)" DEPLOY_SHA="abcdef1234567" \
+  ACTOR="tester" EVENT_NAME="workflow_dispatch" REPO="o/r" \
+  RATIONALE="manual ship" ROLLBACK="revert PR #9" JIRA_KEY="PROJ-1" \
+  bash "$rec")
+if printf '%s' "$rec_row" | grep -q "abcdef1" \
+   && printf '%s' "$rec_row" | grep -q "PROJ-1" \
+   && printf '%s' "$rec_row" | grep -q "manual ship" \
+   && printf '%s' "$rec_row" | grep -q "rollback: revert PR #9"; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: record_deploy_approval row missing expected fields: $rec_row" >&2
+  exit 1
+fi
+# A dispatch deploy with no rationale must still produce a row (placeholder), not crash.
+rec_norat=$(RECORD_DRY_RUN=1 DEPLOY_ENV="production (frontend)" DEPLOY_SHA="0000000abc" \
+  ACTOR="tester" EVENT_NAME="workflow_dispatch" REPO="o/r" bash "$rec")
+if printf '%s' "$rec_norat" | grep -q "no rationale provided"; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: record_deploy_approval missing no-rationale placeholder: $rec_norat" >&2
+  exit 1
+fi
+
 # --- pretool_security_check.py (the PreToolUse hook) must BITE too ---
 # exit 0 = allow, exit 2 = block; "ask" = exit 0 + permissionDecision JSON on stdout.
 hook="$here/../pretool_security_check.py"

@@ -33,6 +33,7 @@ terraform.tfvars
 # OS / editor
 .DS_Store
 *.swp
+*.stackdump   # Cygwin/Git-Bash crash dumps (Windows dev env)
 
 # Claude Code per-user local settings
 .claude/settings.local.json

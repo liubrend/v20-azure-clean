@@ -136,4 +136,48 @@ expect_pass \
   --rubric "$here/../../.claude/agents/reviewer.md" \
   --dry-run
 
+# Structural forced-high: a diff outside the app roots must be detected in
+# code (not just by the model). src/-only diffs must stay out of scope.
+cat > "$tmp/policy.diff" <<'EOF'
+diff --git a/.github/workflows/x.yml b/.github/workflows/x.yml
+index 1111111..2222222 100644
+--- a/.github/workflows/x.yml
++++ b/.github/workflows/x.yml
+@@ -1 +1 @@
+-old: line
++new: line
+EOF
+
+policy_out=$(python3 "$here/ai_review.py" \
+  --diff "$tmp/policy.diff" \
+  --rubric "$here/../../.claude/agents/reviewer.md" \
+  --dry-run)
+if printf '%s' "$policy_out" | grep -q "forced-high paths detected: .github/workflows/x.yml"; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: structural forced-high did not detect workflow path" >&2
+  exit 1
+fi
+
+cat > "$tmp/app.diff" <<'EOF'
+diff --git a/src/frontend/src/app/app.ts b/src/frontend/src/app/app.ts
+index 1111111..2222222 100644
+--- a/src/frontend/src/app/app.ts
++++ b/src/frontend/src/app/app.ts
+@@ -1 +1 @@
+-const a = 1;
++const a = 2;
+EOF
+
+app_out=$(python3 "$here/ai_review.py" \
+  --diff "$tmp/app.diff" \
+  --rubric "$here/../../.claude/agents/reviewer.md" \
+  --dry-run)
+if printf '%s' "$app_out" | grep -q "forced-high paths detected"; then
+  echo "selftest: src/-only diff wrongly flagged forced-high" >&2
+  exit 1
+else
+  pass_count=$((pass_count + 1))
+fi
+
 echo "selftest: $pass_count checks passed"

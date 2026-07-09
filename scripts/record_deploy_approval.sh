@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# Append an L5 deploy-approval row to docs/audit/log.md, then commit + push to
-# main. Called by the deploy workflows AFTER a successful, gates-passed deploy:
-# the gated deploy is the trigger, so the record cannot drift from what shipped.
-# Git history is the tamper-evidence; this file is the human-readable register.
+# Append an L5 deploy-approval row to the audit ledger, then commit + push to
+# the dedicated `audit-log` branch. Called by the deploy workflows AFTER a
+# successful, gates-passed deploy: the gated deploy is the trigger, so the
+# record cannot drift from what shipped. Git history is the tamper-evidence;
+# the ledger is the human-readable register.
 #
-# Machine fills date/SHA/env/approver/PR; the human supplies rationale (required
-# on workflow_dispatch) and rollback_plan via the dispatch form. On a push
-# deploy the rationale is derived from the merged PR.
+# Why a dedicated branch, not main: `main` is protected by the `protect-main`
+# ruleset (require-PR + required checks), which would reject a bot's direct
+# push. The ruleset targets the default branch only, so `audit-log` (an orphan
+# branch holding just the ledger) is writable with plain contents:write — no
+# ruleset bypass, so main protection stays absolute. Pushes to `audit-log`
+# match no workflow trigger (ci.yml/deploy are main-only), so there is no loop.
 #
 # Required env: DEPLOY_ENV DEPLOY_SHA ACTOR EVENT_NAME REPO
-# Optional env: RATIONALE ROLLBACK JIRA_KEY LOG_FILE
+# Optional env: RATIONALE ROLLBACK JIRA_KEY LOG_FILE AUDIT_BRANCH
 #               RECORD_DRY_RUN=1  -> print the row and exit (no git); for selftest
-#
-# The commit is tagged [skip ci]: it must not re-trigger the gate workflow (the
-# automatic GITHUB_TOKEN already suppresses that, this is belt-and-suspenders),
-# and it never matches the deploy path filters, so there is no deploy loop.
 set -euo pipefail
+
+AUDIT_BRANCH="${AUDIT_BRANCH:-audit-log}"
 
 LOG_FILE="${LOG_FILE:-docs/audit/log.md}"
 : "${DEPLOY_ENV:?need DEPLOY_ENV}"
@@ -61,22 +63,24 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 # clean and only the audit-log append gets committed.
 git reset --hard HEAD --quiet 2>/dev/null || true
 
-# Re-apply the row onto a fresh origin/main each attempt so a concurrent deploy's
-# append never conflicts (we only ever add one line at end-of-file).
+# Re-apply the row onto a fresh origin/<audit-branch> each attempt so a
+# concurrent deploy's append never conflicts (we only ever add one line at EOF).
 for attempt in 1 2 3 4 5; do
-  git fetch origin main --quiet
-  git checkout -B main origin/main --quiet
+  git fetch origin "$AUDIT_BRANCH" --quiet
+  # -f: switching from the full main tree to the orphan ledger branch; force a
+  # clean switch (working tree was already reset above).
+  git checkout -f -B "$AUDIT_BRANCH" "origin/$AUDIT_BRANCH" --quiet
   printf '%s\n' "$ROW" >> "$LOG_FILE"
   git add "$LOG_FILE"
-  git commit -m "audit: record $DEPLOY_ENV deploy of $SHORT_SHA [skip ci]" --quiet
-  if git push origin main --quiet 2>/dev/null; then
-    echo "audit row recorded for $SHORT_SHA"
+  git commit -m "audit: record $DEPLOY_ENV deploy of $SHORT_SHA" --quiet
+  if git push origin "$AUDIT_BRANCH" --quiet 2>/dev/null; then
+    echo "audit row recorded for $SHORT_SHA on branch $AUDIT_BRANCH"
     exit 0
   fi
   echo "push race on attempt $attempt — retrying" >&2
-  git reset --hard "origin/main" --quiet 2>/dev/null || true
+  git reset --hard "origin/$AUDIT_BRANCH" --quiet 2>/dev/null || true
   sleep "$((attempt * 2))"
 done
 
-echo "::error::deploy SUCCEEDED but the audit row could not be pushed — add it to $LOG_FILE by hand" >&2
+echo "::error::deploy SUCCEEDED but the audit row could not be pushed to $AUDIT_BRANCH — add it by hand" >&2
 exit 1

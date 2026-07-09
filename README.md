@@ -144,17 +144,16 @@ minutes). The ruleset makes the gates *block* merges rather than only advise:
   permanently unmergeable. It stays advisory: a human reads its findings and
   merges (that is L5).
 - Force-pushes to `main` and branch deletion are blocked. Repository admins
-  have `always` bypass (anti-lockout, and the manual fallback for the audit-log
-  push described below).
+  have `always` bypass (anti-lockout).
 
-**Deferred — Actions-bot bypass for the audit-log push.** The deploy step
-appends its L5 row by pushing a `[skip ci]` commit to `main`
-(`scripts/record_deploy_approval.sh`), which the ruleset would reject (that
-commit has no passing checks). Deploys are **dormant** until the Azure repo
-variables are set, so nothing breaks today. When Azure is bootstrapped, finish
-this by either granting the GitHub Actions bot a ruleset bypass or switching the
-audit push to a GitHub App token. Until then the admin bypass is the manual
-fallback.
+**Audit-log push does not touch `main`.** The deploy step appends its L5 row to
+a dedicated, unprotected `audit-log` orphan branch
+(`scripts/record_deploy_approval.sh`), never to `main`. The ruleset targets the
+default branch only, so the bot pushes with plain `contents: write` — no ruleset
+bypass, and `main` protection stays absolute. The `main` copy of
+`docs/audit/log.md` documents the format; live rows are on the `audit-log`
+branch. (This resolves the earlier main-push conflict; nothing about the audit
+record depends on the Azure bootstrap beyond the deploy jobs becoming active.)
 
 To inspect or change the rule:
 `gh api repos/liubrend/v20-azure-clean/rulesets` (list),

@@ -76,6 +76,22 @@ expect_fail "scanner bites hardcoded secret in .tf" \
 expect_pass "scanner passes clean .java" \
   python3 "$scanner" "$tmp/scanner-clean-java/Config.java"
 
+# --- diff_guard.sh (L3 heuristics) must BITE too ---
+dg="$here/diff_guard.sh"
+
+expect_pass "diff-guard: clean mixed app change" \
+  bash -c "printf 'src/backend/web/Item.java\nsrc/frontend/src/app/app.ts\n' | bash '$dg'"
+expect_pass "diff-guard: auth-only change allowed" \
+  bash -c "printf 'src/backend/auth/LoginService.java\nsrc/backend/auth/LoginServiceTest.java\n' | bash '$dg'"
+expect_fail "diff-guard: auth mixed with other change" \
+  bash -c "printf 'src/backend/auth/LoginService.java\nsrc/backend/web/Item.java\n' | bash '$dg'"
+expect_fail "diff-guard: credentials mixed with docs" \
+  bash -c "printf 'infra/terraform/credentials.tf\ndocs/notes.md\n' | bash '$dg'"
+expect_fail "diff-guard: order_engine + risk_limit" \
+  bash -c "printf 'src/backend/order_engine/Engine.java\nsrc/backend/risk_limit/Limit.java\n' | bash '$dg'"
+expect_pass "diff-guard: author docs are not auth" \
+  bash -c "printf 'docs/authors.md\nREADME.md\n' | bash '$dg'"
+
 # --- pretool_security_check.py (the PreToolUse hook) must BITE too ---
 # exit 0 = allow, exit 2 = block; "ask" = exit 0 + permissionDecision JSON on stdout.
 hook="$here/../pretool_security_check.py"

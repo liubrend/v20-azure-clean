@@ -25,7 +25,11 @@ MANIFEST_PATH = REPO_ROOT / "security" / "ai_sbom.json"
 
 
 def hash_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # Normalize CRLF so the hash matches the committed (LF) blob regardless of
+    # the checkout's autocrlf setting -- Windows working trees hash the same
+    # as the CI runner. Manifest hashes are computed from staged blobs:
+    #   git cat-file blob :<path> | sha256sum
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def load_manifest() -> dict:

@@ -57,6 +57,15 @@ jobs:
       - name: ASI04 — AI supply chain manifest (models pinned, tool schemas unmodified, data sources classified)
         run: python3 scripts/checks/ai_sbom_check.py
 
+  L1-gitleaks:                     # secret scan with a maintained ruleset (complements forbid.sh's
+    runs-on: ubuntu-latest         # narrow regex: cloud connection strings, provider tokens, entropy)
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # scan full history, not just the tip
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   checks-selftest:                 # prove the checks BITE before trusting their silence (L0009)
     runs-on: ubuntu-latest
     steps:
@@ -145,7 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - name: Blast radius + forbidden combos
+      - name: Blast radius + forbidden combos (scripts/checks/diff_guard.sh — selftested)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="origin/${{ github.base_ref }}"
@@ -153,17 +162,7 @@ jobs:
             BASE="${{ github.event.before }}"
             git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
           fi
-          FILES=$(git diff --name-only "$BASE"... | wc -l)
-          echo "files changed: $FILES"
-          [ "$FILES" -gt 25 ] && echo "::warning::large change ($FILES files) — extra L5 scrutiny"
-          CHANGED=$(git diff --name-only "$BASE"...)
-          if echo "$CHANGED" | grep -q "order_engine" && echo "$CHANGED" | grep -q "auth"; then
-            echo "::error::order-engine + auth in one PR — split it (CLAUDE.md)"; exit 1
-          fi
-          if echo "$CHANGED" | grep -q "order_engine" && echo "$CHANGED" | grep -qE "risk[_-]?limit"; then
-            echo "::error::order logic + risk-limit change in one PR — split it (CLAUDE.md)"; exit 1
-          fi
-          exit 0
+          git diff --name-only "$BASE"... | bash scripts/checks/diff_guard.sh
 
   L4-ai-review:                    # AI review gate: the reviewer subagent's rubric, in CI
     runs-on: ubuntu-latest

@@ -28,7 +28,7 @@ dependencies {
     implementation("org.liquibase:liquibase-core")
 
     // Azure Blob Storage.
-    implementation("com.azure:azure-storage-blob:12.29.0")
+    implementation("com.azure:azure-storage-blob:12.35.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 

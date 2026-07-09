@@ -67,41 +67,19 @@ jobs:
       - name: ASI04 — AI supply chain manifest (models pinned, tool schemas unmodified, data sources classified)
         run: python3 scripts/checks/ai_sbom_check.py
 
-  L1-supply-chain:                 # SCA: block newly-introduced vulnerable deps (PR gate) +
-    runs-on: ubuntu-latest         # scan the tree for known-vuln deps / misconfig (advisory)
-    permissions:
+  L1-dep-review:                   # SCA PR gate: block a diff that adds a newly-vulnerable dep.
+    runs-on: ubuntu-latest         # Cheap + only meaningful per-PR (compares base vs head), so it
+    if: github.event_name == 'pull_request'   # stays here; the heavier Trivy CVE sweep is nightly
+    permissions:                              # (see .github/workflows/security-scan.yml).
       contents: read
       pull-requests: write         # dependency-review posts its summary on the PR
     steps:
       - uses: actions/checkout@v4
-      - name: Dependency review (PR only — fails on a newly-added HIGH+ vulnerable dep)
-        if: github.event_name == 'pull_request'
+      - name: Dependency review (fails on a newly-added HIGH+ vulnerable dep)
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
-      - name: Trivy filesystem scan (deps + misconfig; advisory — see promotion note)
-        # Run Trivy via its official image (stable) rather than a version-pinned
-        # action tag. Advisory: --exit-code 0. Promote by setting --exit-code 1.
-        run: |
-          docker run --rm -v "$PWD:/scan" aquasec/trivy:latest fs \
-            --scanners vuln,misconfig,secret \
-            --severity HIGH,CRITICAL --exit-code 0 --no-progress /scan
-
-  L1-image-scan:                   # image CVE scan (advisory): build sample-service, Trivy it
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build sample-service image
-        run: docker build -f src/backend/sample-service/Dockerfile -t sample-service:scan src/backend
-      - name: Trivy image scan (advisory — base-image + app-layer CVEs)
-        # Trivy runs from its own image and reads the runner's Docker daemon
-        # (socket mount) to see the locally-built sample-service:scan image.
-        # Advisory: --exit-code 0. Promote once a base-image patch/floor policy exists.
-        run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
-            --severity HIGH,CRITICAL --exit-code 0 --no-progress sample-service:scan
 
   L1-gitleaks:                     # secret scan with a maintained ruleset (complements forbid.sh's
     runs-on: ubuntu-latest         # narrow regex: cloud connection strings, provider tokens, entropy)

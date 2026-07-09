@@ -161,23 +161,26 @@ To inspect or change the rule:
 
 ## Supply-chain scanning
 
-Layered on top of the homegrown L1 scanners:
+Layered on top of the homegrown L1 scanners, each on the cadence that fits it:
 
-- **SCA** — Dependabot (`.github/dependabot.yml`) opens weekly update PRs and
-  raises vulnerability alerts for npm, Gradle, and Actions. `L1-supply-chain`
-  runs `dependency-review` on every PR and **fails** if the diff introduces a
-  new `high`+ vulnerable dependency.
-- **SAST** — CodeQL (`.github/workflows/codeql.yml`) analyzes the Java and
-  TypeScript code on PR, push, and weekly; results appear in the **Security**
-  tab.
-- **Image / tree CVEs** — Trivy scans the repo tree (`L1-supply-chain`) and the
-  built `sample-service` image (`L1-image-scan`) for HIGH/CRITICAL CVEs and
-  misconfig.
+- **SCA (per-PR gate)** — `L1-dep-review` runs `dependency-review` on every PR and
+  **fails** if the diff introduces a new `high`+ vulnerable dependency. It's cheap
+  and only meaningful per-PR (it diffs base vs head), so it stays in `ci.yml`.
+- **SCA (continuous)** — Dependabot (`.github/dependabot.yml`) opens weekly update
+  PRs; Dependabot **alerts + automated security fixes** are enabled repo-wide.
+- **SAST** — CodeQL (`.github/workflows/codeql.yml`) analyzes Java + TypeScript on
+  PR, push, and weekly; results in the **Security** tab.
+- **CVE sweep (nightly)** — `security-scan.yml` runs Trivy over the repo tree and
+  the built `sample-service` image nightly (+ on push to `main` + on demand), **not
+  on every PR**. CVEs are disclosed against unchanged code over time, so a nightly
+  sweep catches more than per-PR runs and costs less CI. Trivy is installed as a
+  **standalone binary** (signed apt repo) — no Docker for the fs scan, no
+  version-pinned action; portable to any Debian-family CI.
 
-**Advisory today, by design.** CodeQL, the Trivy jobs, and `dependency-review`
-are **not** in the required-checks ruleset yet — a base-image CVE or a finding in
-the current demo code would otherwise block every PR on day one (same reasoning
-as `L4-ai-review`). They run and surface findings now. **Promote to required**
-once the baseline is clean: flip the Trivy `exit-code` to `"1"`, and add
-`L1-supply-chain`, `L1-image-scan`, and the two `CodeQL / analyze (...)` contexts
-to the `protect-main` ruleset's required status checks.
+**Advisory by design.** CodeQL and the Trivy sweep are **not** in the required-checks
+ruleset — a base-image CVE or a finding in the current demo code would otherwise
+block every PR (same reasoning as `L4-ai-review`). `dependency-review` runs as a
+PR check but is also not required yet. **Promote to blocking** once the baseline is
+triaged: flip Trivy's `--exit-code` to `1`, and add `L1-dep-review` and the two
+`CodeQL / analyze (...)` contexts to the `protect-main` ruleset's required checks
+(the nightly Trivy job is not a PR check, so it stays out of the required list).

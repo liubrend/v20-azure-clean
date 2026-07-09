@@ -28,7 +28,7 @@ git hooks, security checks, and **Azure** infra. The application slice is a
 | `.githooks/` + `scripts/` | pre-commit security scan and shared fail-closed checks |
 | `security/` | `security_rules.json` consumed by the pre-commit scanner |
 | `infra/terraform/` | Azure foundation (ACR, Container Apps, Azure SQL, Blob, Key Vault, OIDC) |
-| `backend/` | Gradle multi-module Spring Boot services + their Dockerfiles |
+| `src/backend/` | Gradle multi-module Spring Boot services + their Dockerfiles |
 | `src/frontend/` | Angular workspace (Karma/Jasmine, Static Web Apps config) |
 | `tests/` | `unit/` and `integration/` cross-cutting test suites |
 | `migrations/` | Archival SQL from the old DB backup (never executed by the app; runtime schema is Liquibase in `backend/`) |
@@ -78,7 +78,7 @@ Served by `sample-service` (reached through the gateway at `/api/...`):
    (`scripts/security_precommit.py`) runs on every commit, not just in CI).
 2. Fill the placeholders: `infra/terraform/terraform.tfvars` (copy from `.example`;
    set `subscription_id`, `location`).
-3. Build/test: `cd backend && ./gradlew test`; `npm --prefix src/frontend ci && npm --prefix src/frontend test`.
+3. Build/test: `cd src/backend && ./gradlew test`; `npm --prefix src/frontend ci && npm --prefix src/frontend test`.
 4. Define the domain in `CONTEXT.md` and write the first spec in `docs/specs/`.
 5. Bootstrap Azure + GitHub OIDC and set the repo variables/secrets so the CI gates and
    deploy workflows activate (see `infra/terraform/README.md`).
@@ -92,7 +92,7 @@ only happens in CI (`ci.yml`), not before you commit.
 **Backend** (Java 21 + the committed Gradle wrapper):
 
 ```bash
-cd backend
+cd src/backend
 ./gradlew test                              # unit tests — JUnit 5 + Mockito, no DB
 ./gradlew :sample-service:integrationTest   # Testcontainers SQL Server (needs Docker)
 ./gradlew :sample-service:bootRun           # domain service on :8081

@@ -2,7 +2,7 @@
 SAMPLE CODE -- not wired into any service. See README.md in this directory.
 
 ASI06 (Memory & Context Poisoning) runtime guard. Python mirror of
-backend/sample-service/.../agent/MemoryIntegrityGuard.java: sanitize content
+src/backend/sample-service/.../agent/MemoryIntegrityGuard.java: sanitize content
 before it becomes memory, sign it, and re-verify the signature on read so a
 direct write to the store that bypasses this guard is caught, not just an
 ingestion-time skip.

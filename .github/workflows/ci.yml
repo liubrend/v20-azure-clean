@@ -37,7 +37,7 @@ jobs:
           fi
       - name: Resolve code roots (fail closed)
         run: |
-          ROOTS="${CODE_ROOT:-backend src}"   # set CODE_ROOT in repo/Actions vars to override (space-separated)
+          ROOTS="${CODE_ROOT:-src}"   # set CODE_ROOT in repo/Actions vars to override (space-separated)
           for ROOT in $ROOTS; do
             if [ ! -d "$ROOT" ]; then
               echo "::error::code root '$ROOT' not found — set CODE_ROOT (fail closed; refuse to scan nothing)"; exit 1
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: src/backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -125,7 +125,7 @@ jobs:
       - name: Build images
         run: |
           set -euo pipefail
-          cd backend
+          cd src/backend
           docker build -f api-gateway/Dockerfile -t "api-gateway:${IMAGE_TAG}" .
           docker build -f sample-service/Dockerfile -t "sample-service:${IMAGE_TAG}" .
       - name: Smoke — sample-service serves /health

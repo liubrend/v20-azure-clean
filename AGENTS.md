@@ -58,11 +58,11 @@ automated-only review or approval.
 Always spawn a sub-agent for each service and run them in parallel if possible.
 
 ## Build / test / run (backend)
-Java/Spring Boot microservices live in `backend/` (Gradle multi-module: `api-gateway`, `sample-service`). CI pins **Java 21** (Temurin); target that. RESTful APIs; Azure SQL via JPA + Liquibase; Azure Blob Storage via `BlobStorageService`.
+Java/Spring Boot microservices live in `src/backend/` (Gradle multi-module: `api-gateway`, `sample-service`). CI pins **Java 21** (Temurin); target that. RESTful APIs; Azure SQL via JPA + Liquibase; Azure Blob Storage via `BlobStorageService`.
 
-- **Install/build**: `cd backend && ./gradlew build` (the committed wrapper pins Gradle 8.12; deps from Maven Central via the Spring Boot BOM).
-- **Test**: `cd backend && ./gradlew test` — JUnit 5 + Mockito. **No DB/Docker needed**: unit tests mock the repository/blob store, controller slices use `@WebMvcTest`. The CI L2 gate runs exactly this.
-- **Integration test**: `cd backend && ./gradlew :sample-service:integrationTest` — a separate source set that spins a throwaway **SQL Server** via Testcontainers, applies Liquibase, exercises the REST layer. **Needs a Docker daemon.**
-- **Run**: `cd backend && ./gradlew :sample-service:bootRun` (boots without env for smoke; for real data set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `BLOB_CONNECTION_STRING`, and `LIQUIBASE_ENABLED=true`). The gateway: `./gradlew :api-gateway:bootRun`.
-- **Migrations**: Liquibase changelog at `backend/sample-service/src/main/resources/db/changelog/db.changelog-master.yaml`; runs on startup only when `LIQUIBASE_ENABLED=true`. Connection details come from env (Key Vault → Container Apps), never hardcoded. Top-level `migrations/` is separate: archival SQL from the old DB backup, reference only — the app never executes it; all live schema changes go through the Liquibase changelog.
+- **Install/build**: `cd src/backend && ./gradlew build` (the committed wrapper pins Gradle 8.12; deps from Maven Central via the Spring Boot BOM).
+- **Test**: `cd src/backend && ./gradlew test` — JUnit 5 + Mockito. **No DB/Docker needed**: unit tests mock the repository/blob store, controller slices use `@WebMvcTest`. The CI L2 gate runs exactly this.
+- **Integration test**: `cd src/backend && ./gradlew :sample-service:integrationTest` — a separate source set that spins a throwaway **SQL Server** via Testcontainers, applies Liquibase, exercises the REST layer. **Needs a Docker daemon.**
+- **Run**: `cd src/backend && ./gradlew :sample-service:bootRun` (boots without env for smoke; for real data set `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `BLOB_CONNECTION_STRING`, and `LIQUIBASE_ENABLED=true`). The gateway: `./gradlew :api-gateway:bootRun`.
+- **Migrations**: Liquibase changelog at `src/backend/sample-service/src/main/resources/db/changelog/db.changelog-master.yaml`; runs on startup only when `LIQUIBASE_ENABLED=true`. Connection details come from env (Key Vault → Container Apps), never hardcoded. Top-level `migrations/` is separate: archival SQL from the old DB backup, reference only — the app never executes it; all live schema changes go through the Liquibase changelog.
 - No JDK in this env by default; fetch a portable Temurin 21 tarball and set `JAVA_HOME` before running the wrapper.

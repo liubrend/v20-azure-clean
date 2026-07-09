@@ -17,7 +17,7 @@
 - <Rule that must always hold>
 
 ## Migrations
-<Link to the Liquibase changeset(s) in `backend/sample-service/src/main/resources/db/changelog/` that implement this model. `migrations/` holds archival old-backup SQL for reference only.>
+<Link to the Liquibase changeset(s) in `src/backend/sample-service/src/main/resources/db/changelog/` that implement this model. `migrations/` holds archival old-backup SQL for reference only.>
 
 ## Open questions
 <Anything still undecided. Resolve before building.>

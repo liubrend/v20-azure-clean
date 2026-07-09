@@ -2,7 +2,7 @@
 SAMPLE CODE -- not wired into any service. See README.md in this directory.
 
 ASI02 (Tool Misuse) + ASI03 (Identity & Privilege Abuse) runtime guard.
-Python mirror of backend/sample-service/.../agent/ToolCallGate.java: an
+Python mirror of src/backend/sample-service/.../agent/ToolCallGate.java: an
 allowlist of tool names, per-tool argument/boundary validation, and a
 short-lived credential scoped to one tool name so a hijacked agent can't
 reuse it to call something else.

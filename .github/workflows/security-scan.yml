@@ -1,0 +1,55 @@
+# Heavy CVE scanning (Trivy), scheduled — NOT on every PR. Rationale: these are
+# advisory, report-only scans, and CVEs get disclosed against unchanged code over
+# time, so a nightly sweep catches more than per-PR runs would (and costs less CI).
+# Runs nightly, on push to main, and on demand. The per-PR SCA gate that blocks a
+# diff introducing a vulnerable dependency lives in ci.yml (L1-dep-review).
+#
+# Portability: Trivy is installed as a standalone binary via its signed apt repo —
+# no Docker daemon needed for the filesystem scan, and no version-pinned action to
+# rot. Only the image scan needs Docker (you are scanning a container image), which
+# the build itself already requires. To move off GitHub CI, this file re-homes as a
+# plain "install trivy; trivy fs; trivy image" script on any Debian-family runner.
+name: security-scan
+
+on:
+  schedule:
+    - cron: "17 4 * * *" # nightly 04:17 UTC
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Trivy (standalone binary, signed apt repo — no Docker, no action pin)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y trivy
+          trivy --version
+
+      - name: Trivy filesystem scan (deps + misconfig + secrets; advisory)
+        run: |
+          trivy fs --scanners vuln,misconfig,secret \
+            --severity HIGH,CRITICAL --exit-code 0 --no-progress .
+
+      - name: Build sample-service image
+        run: docker build -f src/backend/sample-service/Dockerfile -t sample-service:scan src/backend
+
+      - name: Trivy image scan (base-image + app-layer CVEs; advisory)
+        # Advisory: --exit-code 0. Promote to "1" once a base-image patch/floor
+        # policy exists (else common base-image CVEs would fail every run).
+        run: |
+          trivy image --severity HIGH,CRITICAL --exit-code 0 --no-progress sample-service:scan

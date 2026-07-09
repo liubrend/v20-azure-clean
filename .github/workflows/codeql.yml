@@ -1,0 +1,36 @@
+# SAST: CodeQL static analysis for the Java backend and the Angular/TS frontend.
+# Advisory for now — results land in the repo Security tab (code scanning alerts),
+# NOT in the required-checks ruleset. Promote to required once the baseline is
+# clean (add "CodeQL / analyze (java-kotlin)" + "(javascript-typescript)" to the
+# protect-main ruleset's required status checks).
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "27 3 * * 1" # weekly, Monday 03:27 UTC — catches newly-disclosed CVEs
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL SARIF to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java-kotlin, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          language: ${{ matrix.language }}
+          build-mode: none # no compile needed; robust across the src/backend Gradle layout
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

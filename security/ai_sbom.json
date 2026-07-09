@@ -20,7 +20,8 @@
     { "path": "scripts/checks/diff_guard.sh", "sha256": "e6b4b4ab44dbad2ffc410227b3279d6b2531c39511ecadc05166f1df07e1373f", "role": "L3 diff heuristics" },
     { "path": "scripts/checks/forbid.sh", "sha256": "5edab1a60c9ccde89494a58c7f44d16e4443fcf1a925c77c764467b0044afb13", "role": "L1 forbidden-pattern scan" },
     { "path": "scripts/checks/lib.sh", "sha256": "a2ac747ea32c31dea526c4e2efbca541f0436686e2a424dd0106eda930c89a97", "role": "shared check regexes" },
-    { "path": "scripts/checks/selftest.sh", "sha256": "62327693a26c36afcc119f3482dd778ff474a0116b6f669ed01ed2523df366ad", "role": "checks negative-test harness" },
+    { "path": "scripts/checks/selftest.sh", "sha256": "2736ae2dd3afddba51333a63a2a9062516c198dfde27494792f52a8382824ce3", "role": "checks negative-test harness" },
+    { "path": "scripts/record_deploy_approval.sh", "sha256": "e9a60f4d396942993776160f8080ec5658637d0c6efe6e2285caecddc294b6b7", "role": "L5 audit-log writer (pushes to main at deploy time)" },
     { "path": "scripts/checks/ai_sbom_check.py", "sha256": "46e3c5844ed634f5b7dd4f4d4a8a930a4e61e6bd2bdb807c04375a4615a3fcae", "role": "this manifest's verifier" },
     { "path": "scripts/security_precommit.py", "sha256": "ec03112f4853ba815963d352b3c3bfd2ff07622cab45fecd732a255be6c7e6b4", "role": "L1 content scanner (pre-commit + CI + PreToolUse)" },
     { "path": "scripts/pretool_security_check.py", "sha256": "cd4108b9e13273100bdb7325f51a921433726d6fb86fd2ad49ff153fb0e83863", "role": "PreToolUse hook" }

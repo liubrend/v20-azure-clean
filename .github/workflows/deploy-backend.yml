@@ -12,6 +12,16 @@ on:
       - "src/backend/**"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
+    inputs:
+      rationale:
+        description: "L5: why is this safe to ship? (recorded in docs/audit/log.md)"
+        required: true
+      rollback_plan:
+        description: "How to undo (e.g. 'redeploy prior image' / 'revert PR #123')"
+        required: false
+      jira_key:
+        description: "Linked Jira issue key (e.g. PROJ-123)"
+        required: false
 
 # Least-privilege floor; each job escalates to only what it needs (see per-job
 # `permissions:` blocks). CONVENTION: a job calling the GitHub API must declare
@@ -59,8 +69,9 @@ jobs:
     if: ${{ vars.AZURE_CLIENT_ID != '' }}
     needs: gates
     permissions:
-      contents: read    # checkout
-      id-token: write   # Azure OIDC (azure/login), no stored secret
+      contents: write        # append + push the L5 row to docs/audit/log.md
+      id-token: write        # Azure OIDC (azure/login), no stored secret
+      pull-requests: read    # derive rationale from the merged PR on push deploys
     runs-on: ubuntu-latest
     env:
       IMAGE_TAG: ${{ github.sha }}
@@ -108,3 +119,18 @@ jobs:
             sleep 5
           done
           echo "::error::gateway did not become healthy after deploy"; exit 1
+
+      # Runs only after the health check passes (a failed step stops the job), so
+      # the audit log records deploys that actually succeeded — nothing else.
+      - name: Record L5 deploy approval in the audit log
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_ENV: "production (backend)"
+          DEPLOY_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          RATIONALE: ${{ inputs.rationale }}
+          ROLLBACK: ${{ inputs.rollback_plan }}
+          JIRA_KEY: ${{ inputs.jira_key }}
+        run: bash scripts/record_deploy_approval.sh

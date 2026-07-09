@@ -9,6 +9,16 @@ on:
       - "src/frontend/**"
       - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:
+    inputs:
+      rationale:
+        description: "L5: why is this safe to ship? (recorded in docs/audit/log.md)"
+        required: true
+      rollback_plan:
+        description: "How to undo (e.g. 'redeploy prior bundle' / 'revert PR #123')"
+        required: false
+      jira_key:
+        description: "Linked Jira issue key (e.g. PROJ-123)"
+        required: false
 
 # Least-privilege floor; each job escalates to only what it needs (see per-job
 # `permissions:` blocks). CONVENTION: a job calling the GitHub API must declare
@@ -54,6 +64,9 @@ jobs:
     # Skip until the bootstrap has set the repo variables / SWA token.
     if: ${{ vars.API_HOST != '' }}
     needs: gates
+    permissions:
+      contents: write        # append + push the L5 row to docs/audit/log.md
+      pull-requests: read    # derive rationale from the merged PR on push deploys
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,3 +102,18 @@ jobs:
           app_location: "src/frontend/dist/frontend/browser"
           skip_app_build: true
           skip_api_build: true
+
+      # Runs only after a successful upload (a failed step stops the job), so the
+      # audit log records deploys that actually shipped — nothing else.
+      - name: Record L5 deploy approval in the audit log
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_ENV: "production (frontend)"
+          DEPLOY_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          RATIONALE: ${{ inputs.rationale }}
+          ROLLBACK: ${{ inputs.rollback_plan }}
+          JIRA_KEY: ${{ inputs.jira_key }}
+        run: bash scripts/record_deploy_approval.sh

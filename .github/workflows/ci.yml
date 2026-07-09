@@ -10,6 +10,17 @@ on:
   push:
     branches: [main]
 
+# Least-privilege floor, declared in code so it does not depend on the repo's
+# (invisible, mutable) Actions "Workflow permissions" setting. Every job without
+# its own block gets exactly this. CONVENTION: any job that calls the GitHub API
+# (gh api, or an action that does, e.g. gitleaks) MUST declare its own
+# `permissions:` with the scope it needs — otherwise it fails on pull_request
+# with "Resource not accessible by integration" (a false gate failure, not a
+# real finding). See L1-gitleaks (pull-requests: write) and L4-ai-review
+# (pull-requests: read) below.
+permissions:
+  contents: read
+
 jobs:
   L1-policy:                       # policy checks: security, money-safety rules
     runs-on: ubuntu-latest

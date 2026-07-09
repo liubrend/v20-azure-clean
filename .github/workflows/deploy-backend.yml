@@ -13,13 +13,16 @@ on:
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
 
+# Least-privilege floor; each job escalates to only what it needs (see per-job
+# `permissions:` blocks). CONVENTION: a job calling the GitHub API must declare
+# its own scope or it fails with "Resource not accessible by integration".
 permissions:
   contents: read
-  id-token: write # required for the Azure OIDC token
-  actions: read   # gates job queries workflow-run conclusions
 
 jobs:
   gates:
+    permissions:
+      actions: read   # gh api: query agentic-sdlc-gates workflow-run conclusions
     # No branch protection on this plan, so deploys are the enforcement point:
     # require the agentic-sdlc-gates (L1–L4) run on this exact SHA to succeed
     # before anything ships. Fail closed on timeout or any non-success conclusion.
@@ -55,6 +58,9 @@ jobs:
     # before the project exists.
     if: ${{ vars.AZURE_CLIENT_ID != '' }}
     needs: gates
+    permissions:
+      contents: read    # checkout
+      id-token: write   # Azure OIDC (azure/login), no stored secret
     runs-on: ubuntu-latest
     env:
       IMAGE_TAG: ${{ github.sha }}

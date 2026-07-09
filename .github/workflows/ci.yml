@@ -58,6 +58,11 @@ jobs:
 
   L1-gitleaks:                     # secret scan with a maintained ruleset (complements forbid.sh's
     runs-on: ubuntu-latest         # narrow regex: cloud connection strings, provider tokens, entropy)
+    permissions:
+      contents: read
+      pull-requests: write         # gitleaks-action enumerates PR commits + posts a findings summary;
+                                   # without this it fails on pull_request with "Resource not accessible
+                                   # by integration" (a false gate failure, not a real leak)
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # scan full history, not just the tip

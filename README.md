@@ -128,23 +128,34 @@ The `agentic-sdlc-gates` workflow (L1–L4) runs on every PR **and** on push to
 `main`. Deploys are additionally gated: `deploy-{backend,frontend}.yml` refuse
 to ship unless that workflow succeeded on the exact pushed SHA (fail-closed).
 
-**Known gap — the gates are not yet *required* checks.** Making CI a true merge
-blocker needs a branch-protection rule on `main`, which GitHub only allows on a
-**private repo under a paid plan** (Pro/Team/Enterprise) or on a **public repo**.
-This repo is private on a free plan, so a PR can currently be merged while its
-checks are still pending or failing (this has happened). Until that is resolved,
-**the deploy-time gate is the enforcement backstop** — unverified code can land
-on `main`, but it cannot deploy.
+**Branch protection is enforced** via a repository ruleset (`protect-main`) on
+`main` — the repo is public, which enables it (and gives unlimited Actions
+minutes). The ruleset makes the gates *block* merges rather than only advise:
 
-Decision required (pick one), then the required-status-checks rule can be applied
-via `gh api repos/liubrend/v20-azure-clean/branches/main/protection`:
+- **Require a PR before merging** (0 approvals — the sole owner cannot
+  self-approve; L5 is the human's merge action plus the recorded
+  `docs/audit/log.md` row, informed by the advisory L4 findings).
+- **Required status checks** (strict — branch must be up to date):
+  `L1-policy`, `L1-gitleaks`, `L1-terraform`, `L2-tests`, `L2-frontend-tests`,
+  `L2-backend-image`, `L3-diff-guard`, `checks-selftest`.
+- **`L4-ai-review` is intentionally NOT required.** It fails "forced-high" on
+  any change outside `src/` and `tests/` by design — that is the L5 escalation
+  signal, not a defect. Requiring it would make every docs/workflow/config PR
+  permanently unmergeable. It stays advisory: a human reads its findings and
+  merges (that is L5).
+- Force-pushes to `main` and branch deletion are blocked. Repository admins
+  have `always` bypass (anti-lockout, and the manual fallback for the audit-log
+  push described below).
 
-- **Upgrade to GitHub Pro** — keeps the repo private; enables branch protection.
-- **Make the repo public** — free; exposes all code, history, and CI config.
-- **Stay as-is** — deploy-time gate remains the only enforcement; accept that
-  `main` can receive unverified merges.
+**Deferred — Actions-bot bypass for the audit-log push.** The deploy step
+appends its L5 row by pushing a `[skip ci]` commit to `main`
+(`scripts/record_deploy_approval.sh`), which the ruleset would reject (that
+commit has no passing checks). Deploys are **dormant** until the Azure repo
+variables are set, so nothing breaks today. When Azure is bootstrapped, finish
+this by either granting the GitHub Actions bot a ruleset bypass or switching the
+audit push to a GitHub App token. Until then the admin bypass is the manual
+fallback.
 
-Required checks to enforce once enabled: `L1-policy`, `L1-gitleaks`,
-`L1-terraform`, `L2-tests`, `L2-frontend-tests`, `L2-backend-image`,
-`L3-diff-guard`, `L4-ai-review`, `checks-selftest`. L5 (human approval) maps to
-the "require a pull-request review before merge" branch-protection setting.
+To inspect or change the rule:
+`gh api repos/liubrend/v20-azure-clean/rulesets` (list),
+`gh api repos/liubrend/v20-azure-clean/rulesets/<id>` (detail).

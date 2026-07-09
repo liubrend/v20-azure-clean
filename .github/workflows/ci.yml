@@ -81,14 +81,12 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
       - name: Trivy filesystem scan (deps + misconfig; advisory — see promotion note)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: HIGH,CRITICAL
-          scanners: vuln,misconfig,secret
-          exit-code: "0"           # advisory: promote to "1" once the tree is baseline-clean
-          format: table
+        # Run Trivy via its official image (stable) rather than a version-pinned
+        # action tag. Advisory: --exit-code 0. Promote by setting --exit-code 1.
+        run: |
+          docker run --rm -v "$PWD:/scan" aquasec/trivy:latest fs \
+            --scanners vuln,misconfig,secret \
+            --severity HIGH,CRITICAL --exit-code 0 --no-progress /scan
 
   L1-image-scan:                   # image CVE scan (advisory): build sample-service, Trivy it
     runs-on: ubuntu-latest
@@ -97,13 +95,13 @@ jobs:
       - name: Build sample-service image
         run: docker build -f src/backend/sample-service/Dockerfile -t sample-service:scan src/backend
       - name: Trivy image scan (advisory — base-image + app-layer CVEs)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: image
-          image-ref: sample-service:scan
-          severity: HIGH,CRITICAL
-          exit-code: "0"           # advisory: base images carry CVEs; promote once a patch/floor policy exists
-          format: table
+        # Trivy runs from its own image and reads the runner's Docker daemon
+        # (socket mount) to see the locally-built sample-service:scan image.
+        # Advisory: --exit-code 0. Promote once a base-image patch/floor policy exists.
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL --exit-code 0 --no-progress sample-service:scan
 
   L1-gitleaks:                     # secret scan with a maintained ruleset (complements forbid.sh's
     runs-on: ubuntu-latest         # narrow regex: cloud connection strings, provider tokens, entropy)

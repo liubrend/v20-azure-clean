@@ -167,6 +167,9 @@ jobs:
 
   L4-ai-review:                    # AI review gate: the reviewer subagent's rubric, in CI
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read   # merged-PR lookup on push runs (commits/{sha}/pulls)
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }

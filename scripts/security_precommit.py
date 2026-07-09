@@ -214,12 +214,19 @@ def stdlib_modules() -> set[str]:
     return set(names) | set(sys.builtin_module_names)
 
 
-def scan_imports(path: str, text: str, allowed_external: Iterable[str]) -> list[Finding]:
+def scan_imports(
+    path: str, text: str, allowed_external: Iterable[str], fragment: bool = False
+) -> list[Finding]:
     if not path.endswith(".py"):
         return []
     try:
         tree = ast.parse(text, filename=path)
     except SyntaxError as exc:
+        if fragment:
+            # An Edit/NotebookEdit fragment is not a complete file; a parse
+            # failure is expected there, not a finding. The staged-file scan
+            # at commit time still sees the whole file with full context.
+            return []
         return [
             Finding(
                 "SEC010",
@@ -329,7 +336,7 @@ def scan_pii(path: str, text: str, allowlist: Iterable[str]) -> list[Finding]:
     return findings
 
 
-def scan_file(path: str, text: str, config: dict) -> list[Finding]:
+def scan_file(path: str, text: str, config: dict, fragment: bool = False) -> list[Finding]:
     allowed_imports = config.get("allowed_external_imports", [])
     pii_allowlist = config.get("pii_allowlist_patterns", [])
     prompt_allowlist_paths = config.get("prompt_injection_allowlist_paths", [])
@@ -337,7 +344,7 @@ def scan_file(path: str, text: str, config: dict) -> list[Finding]:
     normalized = project_path(path)
     if not any(fnmatch.fnmatch(normalized, pattern) for pattern in prompt_allowlist_paths):
         findings.extend(scan_prompt_injection(path, text))
-    findings.extend(scan_imports(path, text, allowed_imports))
+    findings.extend(scan_imports(path, text, allowed_imports, fragment=fragment))
     findings.extend(scan_sql(path, text))
     findings.extend(scan_pii(path, text, pii_allowlist))
     return sorted(findings, key=lambda item: (item.path, item.line, item.code, item.message))

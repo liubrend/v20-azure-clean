@@ -27,9 +27,9 @@ jobs:
     env:
       CODE_ROOT: ${{ vars.CODE_ROOT }}   # repo/Actions variable; falls back to "src" below
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
       - name: "Security scan (re-run the pre-commit hook's scanner: scripts/security_precommit.py)"
         run: |
@@ -74,9 +74,9 @@ jobs:
       contents: read
       pull-requests: write         # dependency-review posts its summary on the PR
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Dependency review (fails on a newly-added HIGH+ vulnerable dep)
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
@@ -89,17 +89,17 @@ jobs:
                                    # without this it fails on pull_request with "Resource not accessible
                                    # by integration" (a false gate failure, not a real leak)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }   # scan full history, not just the tip
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
   checks-selftest:                 # prove the checks BITE before trusting their silence (L0009)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
       - name: Self-test checks against known-bad/good fixtures
         run: bash scripts/checks/selftest.sh
@@ -111,8 +111,8 @@ jobs:
       run:
         working-directory: src/backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -126,13 +126,13 @@ jobs:
       run:
         working-directory: src/frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: src/frontend/package-lock.json
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
         id: setup-chrome
       - run: npm ci
       - run: npm test
@@ -145,8 +145,8 @@ jobs:
       run:
         working-directory: infra/terraform
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.9.8"
       - run: terraform fmt -check -recursive
@@ -158,7 +158,7 @@ jobs:
     env:
       IMAGE_TAG: ${{ github.sha }}   # tag images by commit SHA (matches deploy-backend)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build images
         run: |
           set -euo pipefail
@@ -180,7 +180,7 @@ jobs:
   L3-diff-guard:                   # diff heuristics: blast radius, dangerous combinations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - name: Blast radius + forbidden combos (scripts/checks/diff_guard.sh — selftested)
         run: |
@@ -198,9 +198,9 @@ jobs:
       contents: read
       pull-requests: read   # merged-PR lookup on push runs (commits/{sha}/pulls)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
       - name: Reviewer findings on the diff
         env:

@@ -80,11 +80,16 @@ Served by `sample-service` (reached through the gateway at `/api/...`):
    every commit. Do this first: without it a secret is only caught in CI —
    *after* it has already reached the remote and must be rotated, not just
    removed. The hook catches it before the commit lands.
-2. Fill the placeholders: `infra/terraform/terraform.tfvars` (copy from `.example`;
+2. **Establish the repo-level guardrails** (new repo / fork) — `bash
+   scripts/bootstrap_repo.sh`. The committed workflows travel with the code, but
+   branch protection, secret scanning, and Dependabot alerts are GitHub settings a
+   copy does **not** inherit; this recreates them in one idempotent command. See
+   [Porting to a new repo or fork](#porting-to-a-new-repo-or-fork).
+3. Fill the placeholders: `infra/terraform/terraform.tfvars` (copy from `.example`;
    set `subscription_id`, `location`).
-3. Build/test: `cd src/backend && ./gradlew test`; `npm --prefix src/frontend ci && npm --prefix src/frontend test`.
-4. Define the domain in `CONTEXT.md` and write the first spec in `docs/specs/`.
-5. Bootstrap Azure + GitHub OIDC and set the repo variables/secrets so the CI gates and
+4. Build/test: `cd src/backend && ./gradlew test`; `npm --prefix src/frontend ci && npm --prefix src/frontend test`.
+5. Define the domain in `CONTEXT.md` and write the first spec in `docs/specs/`.
+6. Bootstrap Azure + GitHub OIDC and set the repo variables/secrets so the CI gates and
    deploy workflows activate (see `infra/terraform/README.md`).
 
 Note: a fresh clone has **no** local hook until step 1 (`make setup`) is run —

@@ -147,6 +147,12 @@ expect_rc "allows plain git status" 0 \
   '{"tool_name":"Bash","tool_input":{"command":"git status"}}'
 expect_rc "allows hook install (hooksPath -> .githooks)" 0 \
   '{"tool_name":"Bash","tool_input":{"command":"git config core.hooksPath .githooks"}}'
+# Regression: reading hooksPath (--get) must NOT be mistaken for re-pointing it.
+expect_rc "allows reading core.hooksPath (git config --get)" 0 \
+  '{"tool_name":"Bash","tool_input":{"command":"git config --get core.hooksPath"}}'
+# Regression: a force-push regex must not span `&&` into an unrelated `git branch -f`.
+expect_rc "allows normal push chained with git branch -f" 0 \
+  '{"tool_name":"Bash","tool_input":{"command":"git push -u origin feature && git branch -f main origin/main"}}'
 expect_rc "no false positive on indented python Edit fragment" 0 \
   '{"tool_name":"Edit","tool_input":{"file_path":"app/x.py","new_string":"    return foo(bar)"}}'
 expect_rc "fail closed on undecodable payload" 2 'this is not json'

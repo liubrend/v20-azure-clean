@@ -101,6 +101,8 @@ def discover_git_root(start: Path) -> Path:
         cwd=str(start),
         check=False,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -121,11 +123,16 @@ def project_path(path: str) -> str:
 
 
 def git(args: Sequence[str], cwd: Path = GIT_ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
+    # Force UTF-8 decoding: without it, text=True uses the locale codec (cp1252
+    # on Windows), which crashes on non-ASCII bytes in staged content/diffs when
+    # this runs as the pre-commit hook. errors="replace" keeps the scan resilient.
     return subprocess.run(
         ["git", *args],
         cwd=str(cwd),
         check=check,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

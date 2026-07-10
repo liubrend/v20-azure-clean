@@ -49,15 +49,27 @@ COMMAND_POLICY = [
         "git --no-verify skips the pre-commit security hook (L1)",
     ),
     (
-        re.compile(r"git\b[^\n]*-c\s*core\.hooksPath", re.IGNORECASE),
+        # Inline override that SETS hooksPath (git -c core.hooksPath=...). The
+        # `[^\n|;&]*` keeps the match inside one command segment so it can't span
+        # `&&`/`;`/`|` into an unrelated command.
+        re.compile(r"git\b[^\n|;&]*-c\s*core\.hooksPath\s*=", re.IGNORECASE),
         "inline core.hooksPath override disarms the tracked git hooks",
     ),
     (
-        re.compile(r"git\s+config\b(?![^\n]*\.githooks)[^\n]*core\.hooksPath", re.IGNORECASE),
+        # Re-pointing hooksPath via `git config core.hooksPath <value>`. Only a
+        # SET matches: a value must follow (`\s+\S`), and reads (--get/--list) or
+        # pointing back at .githooks are excluded. So `git config --get
+        # core.hooksPath` (read) is allowed.
+        re.compile(
+            r"git\s+config\b(?![^\n|;&]*(?:--get|--list|\.githooks))[^\n|;&]*\bcore\.hooksPath\s+\S",
+            re.IGNORECASE,
+        ),
         "re-pointing core.hooksPath away from .githooks disarms the L1 hook",
     ),
     (
-        re.compile(r"git\s+push\b[^\n]*(\s--force\b|\s-f\b)"),
+        # Force push. `[^\n|;&]*` confines it to the push command, so a later
+        # `&& git branch -f ...` in the same line is not mistaken for a force push.
+        re.compile(r"git\s+push\b[^\n|;&]*(?:\s--force\b|\s-f\b)"),
         "force push rewrites remote history; run it yourself if truly intended",
     ),
     (

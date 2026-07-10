@@ -57,5 +57,13 @@ if printf '%s\n' "$changed" | grep -q "order_engine" \
   exit 1
 fi
 
+# Spec changed but no tests changed => likely stale scenario coverage. Warning
+# only (non-blocking); the L2 spec-traceability gate enforces it structurally.
+if printf '%s\n' "$changed" | grep -qE '^docs/specs/spec-[0-9]'; then
+  if ! printf '%s\n' "$changed" | grep -qE '(/src/(test|integrationTest)/|\.spec\.ts$|^tests/)'; then
+    echo "::warning::a spec changed but no test files changed — update the scenario tests (spec traceability)"
+  fi
+fi
+
 echo "diff-guard: clean"
 exit 0

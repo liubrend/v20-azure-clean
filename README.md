@@ -147,7 +147,7 @@ minutes). The ruleset makes the gates *block* merges rather than only advise:
   `docs/audit/log.md` row, informed by the advisory L4 findings).
 - **Required status checks** (strict — branch must be up to date):
   `L1-policy`, `L1-gitleaks`, `L1-terraform`, `L2-tests`, `L2-frontend-tests`,
-  `L2-backend-image`, `L3-diff-guard`, `checks-selftest`.
+  `L2-backend-image`, `L2-spec-traceability`, `L3-diff-guard`, `checks-selftest`.
 - **`L4-ai-review` is intentionally NOT required.** It fails "forced-high" on
   any change outside `src/` and `tests/` by design — that is the L5 escalation
   signal, not a defect. Requiring it would make every docs/workflow/config PR
@@ -155,6 +155,14 @@ minutes). The ruleset makes the gates *block* merges rather than only advise:
   merges (that is L5).
 - Force-pushes to `main` and branch deletion are blocked. Repository admins
   have `always` bypass (anti-lockout).
+
+**Fast path for docs-only / unrelated changes.** The heavy required jobs
+(`L2-tests`, `L2-frontend-tests`, `L2-backend-image`) each detect whether their
+own source changed vs. the base; when it did not (a docs/config PR, or a
+frontend-only PR for the backend jobs), they short-circuit and report success in
+seconds instead of running the full build. A `ci.yml` change re-runs everything.
+This keeps a typo PR cheap **without** weakening any gate — the required check
+still runs and passes, so branch protection is unaffected.
 
 **Audit-log push does not touch `main`.** The deploy step appends its L5 row to
 a dedicated, unprotected `audit-log` orphan branch
@@ -217,7 +225,7 @@ triaged: flip Trivy's `--exit-code` to `1`, and add `L1-dep-review` and the two
 
 ## Gate trigger map
 
-Where each L1–L5 layer fires. The **8 required** checks block a merge; everything
+Where each L1–L5 layer fires. The **9 required** checks block a merge; everything
 else runs and reports but does not block (the deliberate advisory tier).
 
 | Layer | Gate | Where | When | Enforcement |
@@ -235,7 +243,8 @@ else runs and reports but does not block (the deliberate advisory tier).
 | **L2** | `L2-tests` (unit + Testcontainers integration) | CI | PR + push to `main` | **Required** |
 | **L2** | `L2-frontend-tests` (Karma/Jasmine) | CI | PR + push to `main` | **Required** |
 | **L2** | `L2-backend-image` (build + `/health` smoke) | CI | PR + push to `main` | **Required** |
-| **L3** | `L3-diff-guard` (auth isolation, blast radius, order/risk combos) | CI | PR + push to `main` | **Required** |
+| **L2** | `L2-spec-traceability` (every spec scenario `S<n>` referenced by a `spec-NNN:S<n>` test) | CI | PR + push to `main` | **Required** |
+| **L3** | `L3-diff-guard` (auth isolation, blast radius, order/risk combos, spec-without-test warning) | CI | PR + push to `main` | **Required** |
 | **L4** | `L4-ai-review` (LLM reviewer on the diff) | CI | PR + push to `main` (skips on push when the SHA came from a merged PR) | Advisory — forced-high signals L5 |
 | **L5** | Require-PR + human merge | Ruleset `protect-main` | Every change to `main` | Blocks: no PR / not green → no merge |
 | **L5** | Deploy approval (`rationale` + audit row) | Deploy → `audit-log` branch | On dispatch / push-main deploy | Records the decision (dormant until Azure) |

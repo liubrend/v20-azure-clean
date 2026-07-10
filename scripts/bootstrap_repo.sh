@@ -75,7 +75,8 @@ create_ruleset "protect-main" '{
           { "context": "L1-policy" }, { "context": "L1-gitleaks" },
           { "context": "L1-terraform" }, { "context": "L2-tests" },
           { "context": "L2-frontend-tests" }, { "context": "L2-backend-image" },
-          { "context": "L3-diff-guard" }, { "context": "checks-selftest" } ] } },
+          { "context": "L2-spec-traceability" }, { "context": "L3-diff-guard" },
+          { "context": "checks-selftest" } ] } },
     { "type": "non_fast_forward" }, { "type": "deletion" }
   ] }'
 

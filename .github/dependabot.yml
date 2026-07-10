@@ -1,12 +1,24 @@
-# SCA: automated dependency-update PRs + vulnerability alerts. Each PR runs the
-# full gate stack like any other change. Grouped to keep PR volume sane.
+# Dependabot — quiet while the app is a demo scaffold.
+#
+# The dependency GRAPH and ALERTS stay ON (enabled at the repo level): they power
+# the L1-dep-review PR gate and surface vulnerabilities in the Security tab. What
+# is silenced here is the automated PR noise, because the current dependencies are
+# throwaway scaffold (demo Angular build tooling, the sample-service), not the real
+# product:
+#   - open-pull-requests-limit: 0 disables version-update PRs per ecosystem.
+#   - Dependabot security-update PRs are disabled at the repo level
+#     (Settings -> Code security -> "Dependabot security updates" = off).
+#
+# When real product dependencies land, re-activate: raise the limit (e.g. 5) and
+# turn Dependabot security updates back on. The `groups` blocks below keep future
+# bursts to one PR per ecosystem instead of one PR per package.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /src/frontend
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 0 # silenced; raise when the frontend is real
     groups:
       frontend:
         patterns: ["*"]
@@ -14,8 +26,8 @@ updates:
   - package-ecosystem: gradle
     directory: /src/backend
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 0 # silenced; raise when the backend is real
     groups:
       backend:
         patterns: ["*"]
@@ -23,7 +35,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 0 # silenced; raise to keep CI actions current
     groups:
       actions:
         patterns: ["*"]

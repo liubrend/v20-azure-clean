@@ -104,6 +104,15 @@ jobs:
       - name: Self-test checks against known-bad/good fixtures
         run: bash scripts/checks/selftest.sh
 
+  L2-spec-traceability:            # every spec scenario (### S<n>) must be referenced by a test
+    runs-on: ubuntu-latest         # as spec-NNN:S<n> — so a spec change can't merge stale coverage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Spec scenarios are covered by tests
+        run: python3 scripts/checks/spec_traceability.py
+
   L2-tests:                        # backend test proof: JUnit 5 + Mockito on Java 21
     # NB: spec-derived behavioral invariants live HERE, as tests (CLAUDE.md → L2).
     runs-on: ubuntu-latest
@@ -112,12 +121,33 @@ jobs:
         working-directory: src/backend
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Detect relevant changes (fast path — skip build when no backend change)
+        id: changes
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
+          fi
+          # A ci.yml change re-runs everything; otherwise skip when no backend change.
+          if git diff --name-only "$BASE"... | grep -qE '^src/backend/|^\.github/workflows/ci\.yml$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::no src/backend changes — short-circuiting L2-tests (fast path)"
+          fi
       - uses: actions/setup-java@v4
+        if: steps.changes.outputs.run == 'true'
         with:
           distribution: temurin
           java-version: "21"
-      - run: ./gradlew test --no-daemon
+      - if: steps.changes.outputs.run == 'true'
+        run: ./gradlew test --no-daemon
       - name: Integration tests (Testcontainers SQL Server; L2 per AGENTS.md = unit + integration)
+        if: steps.changes.outputs.run == 'true'
         run: ./gradlew :sample-service:integrationTest --no-daemon
 
   L2-frontend-tests:               # frontend UI tests: Karma + Jasmine on headless Chrome
@@ -127,15 +157,36 @@ jobs:
         working-directory: src/frontend
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Detect relevant changes (fast path — skip when no frontend change)
+        id: changes
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
+          fi
+          if git diff --name-only "$BASE"... | grep -qE '^src/frontend/|^\.github/workflows/ci\.yml$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::no src/frontend changes — short-circuiting L2-frontend-tests (fast path)"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.changes.outputs.run == 'true'
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: src/frontend/package-lock.json
       - uses: browser-actions/setup-chrome@v1
+        if: steps.changes.outputs.run == 'true'
         id: setup-chrome
-      - run: npm ci
-      - run: npm test
+      - if: steps.changes.outputs.run == 'true'
+        run: npm ci
+      - if: steps.changes.outputs.run == 'true'
+        run: npm test
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
 
@@ -159,13 +210,31 @@ jobs:
       IMAGE_TAG: ${{ github.sha }}   # tag images by commit SHA (matches deploy-backend)
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Detect relevant changes (fast path — skip image build when no backend change)
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE="HEAD^"
+          fi
+          if git diff --name-only "$BASE"... | grep -qE '^src/backend/|^\.github/workflows/ci\.yml$'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::no src/backend changes — short-circuiting L2-backend-image (fast path)"
+          fi
       - name: Build images
+        if: steps.changes.outputs.run == 'true'
         run: |
           set -euo pipefail
           cd src/backend
           docker build -f api-gateway/Dockerfile -t "api-gateway:${IMAGE_TAG}" .
           docker build -f sample-service/Dockerfile -t "sample-service:${IMAGE_TAG}" .
       - name: Smoke — sample-service serves /health
+        if: steps.changes.outputs.run == 'true'
         run: |
           set -euo pipefail
           docker run -d --name svc -p 8081:8081 "sample-service:${IMAGE_TAG}"

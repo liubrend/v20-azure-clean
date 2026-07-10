@@ -12,7 +12,11 @@
 
 ## Behavior
 
-Every scenario below becomes a test (L2). Use Given/When/Then.
+Every scenario below becomes a test (L2). Use Given/When/Then. Each scenario has
+a stable id (`S1`, `S2`, …); its test(s) **must reference** `spec-NNN:S<n>` in the
+test name/title or a comment — e.g. `@DisplayName("spec-003:S2 rejects a market
+order")` — so the L2 spec-traceability gate can confirm coverage and catch a spec
+change that leaves a scenario untested.
 
 ### S1 — <scenario name>
 - **Given** <starting state>

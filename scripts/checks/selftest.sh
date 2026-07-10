@@ -91,6 +91,23 @@ expect_fail "diff-guard: order_engine + risk_limit" \
   bash -c "printf 'src/backend/order_engine/Engine.java\nsrc/backend/risk_limit/Limit.java\n' | bash '$dg'"
 expect_pass "diff-guard: author docs are not auth" \
   bash -c "printf 'docs/authors.md\nREADME.md\n' | bash '$dg'"
+expect_pass "diff-guard: spec change without a test warns but does not block" \
+  bash -c "printf 'docs/specs/spec-900-x.md\n' | bash '$dg'"
+expect_pass "diff-guard: spec change with a test is clean" \
+  bash -c "printf 'docs/specs/spec-900-x.md\nsrc/backend/x/src/test/java/T.java\n' | bash '$dg'"
+
+# --- spec_traceability.py must BITE ---
+st="$here/spec_traceability.py"
+mkdir -p "$tmp/trace-ok/docs/specs" "$tmp/trace-ok/tests" \
+         "$tmp/trace-bad/docs/specs" "$tmp/trace-bad/tests"
+printf '# spec-900 — demo\n\n### S1 — ok\n- **Given** x\n' > "$tmp/trace-ok/docs/specs/spec-900-demo.md"
+printf 'DisplayName spec-900:S1 covered by this test\n' > "$tmp/trace-ok/tests/t.txt"
+expect_pass "spec-traceability: covered scenario passes" \
+  python3 "$st" "$tmp/trace-ok"
+printf '# spec-901 — demo\n\n### S1 — missing\n- **Given** x\n' > "$tmp/trace-bad/docs/specs/spec-901-demo.md"
+printf 'an unrelated test with no scenario reference\n' > "$tmp/trace-bad/tests/t.txt"
+expect_fail "spec-traceability: uncovered scenario fails" \
+  python3 "$st" "$tmp/trace-bad"
 
 # --- record_deploy_approval.sh row builder (dry-run, no git) ---
 rec="$here/../record_deploy_approval.sh"

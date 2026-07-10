@@ -81,19 +81,26 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
 
-  L1-gitleaks:                     # secret scan with a maintained ruleset (complements forbid.sh's
-    runs-on: ubuntu-latest         # narrow regex: cloud connection strings, provider tokens, entropy)
-    permissions:
-      contents: read
-      pull-requests: write         # gitleaks-action enumerates PR commits + posts a findings summary;
-                                   # without this it fails on pull_request with "Resource not accessible
-                                   # by integration" (a false gate failure, not a real leak)
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }   # scan full history, not just the tip
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+  L1-gitleaks:                     # full-history secret scan with gitleaks' maintained ruleset.
+    runs-on: ubuntu-latest         # Runs the CLI (via the official image) directly on the checkout —
+    permissions:                   # NOT the gitleaks-action, whose ScanPullRequest calls the GitHub
+      contents: read               # API and intermittently gets an HTML error page (a flaky false
+    steps:                         # failure, not a leak). The CLI hits no API, so that path is gone;
+      - uses: actions/checkout@v4  # only the image pull is network-flaky, and that is retried.
+        with: { fetch-depth: 0 }   # full history, not just the tip
+      - name: Gitleaks (CLI, full history; retry the image pull only)
+        run: |
+          set -euo pipefail
+          IMG="ghcr.io/gitleaks/gitleaks:latest"
+          for attempt in 1 2 3; do
+            docker pull -q "$IMG" && break
+            echo "gitleaks: image pull failed (attempt $attempt/3), retrying"; sleep "$((attempt * 5))"
+          done
+          # GIT_CONFIG safe.directory avoids git "dubious ownership" for the mounted
+          # repo inside the container. gitleaks exits 1 on findings -> the job fails.
+          docker run --rm \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*' \
+            -v "$PWD:/repo" "$IMG" git /repo --redact --no-banner
 
   checks-selftest:                 # prove the checks BITE before trusting their silence (L0009)
     runs-on: ubuntu-latest

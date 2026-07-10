@@ -177,10 +177,32 @@ To inspect or change the rule:
 `gh api repos/liubrend/v20-azure-clean/rulesets` (list),
 `gh api repos/liubrend/v20-azure-clean/rulesets/<id>` (detail).
 
-**Break-glass.** For a live incident, on-call can emergency-merge with only L1+L2
-mandated (L3/L4/L5 deferred to a mandatory 48h review) via
-`scripts/emergency_merge.sh` — a loud, audited procedure, not a quiet bypass.
-See [`runbooks/break-glass.md`](runbooks/break-glass.md).
+### Break-glass (emergency merge)
+
+For a live incident where the normal L1–L5 flow is too slow, on-call can
+emergency-merge a fix. It is a **loud, audited** procedure, not a quiet bypass:
+it keeps the automated safety floor, defers only the judgment gates, and forces a
+post-hoc review. Full runbook: [`runbooks/break-glass.md`](runbooks/break-glass.md).
+
+```bash
+# fix is already an open PR with L1+L2 green:
+bash scripts/emergency_merge.sh --pr <N> --incident <ID> --reason "<why>"
+bash scripts/emergency_merge.sh --pr <N> --incident <ID> --reason "<why>" --dry-run   # test setup, change nothing
+```
+
+| Layer | Break-glass |
+|---|---|
+| **L1** (secrets, policy, gitleaks, SBOM, tf-validate) | **Mandatory** — merge aborts if not green |
+| **L2** (unit + integration + image smoke + spec-traceability) | **Mandatory** — merge aborts if not green |
+| **L3 / L4 / L5** | **Deferred** to a mandatory 48h `break-glass-review` issue |
+
+The script refuses unless the caller is on the on-call roster
+(`.github/oncall.txt`) and all L1+L2 checks are green; it then opens the review
+issue, appends an `EMERGENCY` row to the `audit-log` branch, and `gh pr merge
+--admin` merges using the caller's own bypass (no standing bot credential).
+`break-glass-sla.yml` fails a daily run if any review is open past 48h. Repeated
+use is itself a signal — it means the normal path is too slow, not that this one
+should be widened.
 
 ### Porting to a new repo or fork
 

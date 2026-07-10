@@ -73,9 +73,12 @@ Served by `sample-service` (reached through the gateway at `/api/...`):
 
 ## Getting started
 
-1. Install the local git hooks: `python scripts/install_hooks.py` (sets
-   `core.hooksPath` to `.githooks`, so the L1 security scan
-   (`scripts/security_precommit.py`) runs on every commit, not just in CI).
+1. **Install the local git hooks** — `make setup` (or, with no `make`, e.g. on
+   Windows: `python scripts/install_hooks.py`). This points `core.hooksPath` at
+   `.githooks`, so the L1 secret scan (`scripts/security_precommit.py`) runs on
+   every commit. Do this first: without it a secret is only caught in CI —
+   *after* it has already reached the remote and must be rotated, not just
+   removed. The hook catches it before the commit lands.
 2. Fill the placeholders: `infra/terraform/terraform.tfvars` (copy from `.example`;
    set `subscription_id`, `location`).
 3. Build/test: `cd src/backend && ./gradlew test`; `npm --prefix src/frontend ci && npm --prefix src/frontend test`.
@@ -83,9 +86,10 @@ Served by `sample-service` (reached through the gateway at `/api/...`):
 5. Bootstrap Azure + GitHub OIDC and set the repo variables/secrets so the CI gates and
    deploy workflows activate (see `infra/terraform/README.md`).
 
-Note: this repo does **not** run `install_hooks.py` automatically — a fresh
-clone has no local hook until step 1 is run. Without it, the L1 security scan
-only happens in CI (`ci.yml`), not before you commit.
+Note: a fresh clone has **no** local hook until step 1 (`make setup`) is run —
+git can't auto-run setup on clone. Without it, the L1 scan only happens in CI
+(`ci.yml`), not before you commit. (The PreToolUse hook still screens commits
+made *through* Claude Code, but not a human `git commit` in a terminal.)
 
 ## Local development
 
@@ -211,6 +215,7 @@ else runs and reports but does not block (the deliberate advisory tier).
 | **L5** | Deploy approval (`rationale` + audit row) | Deploy → `audit-log` branch | On dispatch / push-main deploy | Records the decision (dormant until Azure) |
 
 **Coverage caveat:** L2/L3/L4 are entirely CI-side, and the local L1 pre-commit
-hook is opt-in (`install_hooks.py`) — so before CI, a plain `git commit` in a
-terminal is guarded by nothing unless that hook is installed. The PreToolUse hook
-covers only tool calls made *through* Claude Code, not a human typing `git commit`.
+hook is opt-in — run `make setup` (or `python scripts/install_hooks.py`) once per
+clone, or a plain `git commit` in a terminal is guarded by nothing before CI. The
+PreToolUse hook covers only tool calls made *through* Claude Code, not a human
+typing `git commit`.

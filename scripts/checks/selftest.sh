@@ -134,6 +134,25 @@ else
   exit 1
 fi
 
+# --- emergency_merge.sh must reject a missing justification (exit 2, offline) ---
+em="$here/../emergency_merge.sh"
+em_rc=0
+bash "$em" >/dev/null 2>&1 || em_rc=$?
+if [ "$em_rc" -eq 2 ]; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: emergency_merge.sh with no args should exit 2, got $em_rc" >&2
+  exit 1
+fi
+em_rc2=0
+bash "$em" --pr 1 --incident INC-1 >/dev/null 2>&1 || em_rc2=$?  # missing --reason
+if [ "$em_rc2" -eq 2 ]; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: emergency_merge.sh without --reason should exit 2, got $em_rc2" >&2
+  exit 1
+fi
+
 # --- pretool_security_check.py (the PreToolUse hook) must BITE too ---
 # exit 0 = allow, exit 2 = block; "ask" = exit 0 + permissionDecision JSON on stdout.
 hook="$here/../pretool_security_check.py"

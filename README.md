@@ -184,3 +184,33 @@ PR check but is also not required yet. **Promote to blocking** once the baseline
 triaged: flip Trivy's `--exit-code` to `1`, and add `L1-dep-review` and the two
 `CodeQL / analyze (...)` contexts to the `protect-main` ruleset's required checks
 (the nightly Trivy job is not a PR check, so it stays out of the required list).
+
+## Gate trigger map
+
+Where each L1–L5 layer fires. The **8 required** checks block a merge; everything
+else runs and reports but does not block (the deliberate advisory tier).
+
+| Layer | Gate | Where | When | Enforcement |
+|---|---|---|---|---|
+| **L1** | PreToolUse hook (`pretool_security_check.py`) | Local — Claude Code tool calls | Before each Bash/Write/Edit/NotebookEdit | Blocks the call (fail-closed) |
+| **L1** | pre-commit hook (`security_precommit.py --staged`) | Local — git commit | On commit, **only if** `install_hooks.py` was run | Blocks commit — opt-in, not installed by default |
+| **L1** | `L1-policy` (scanner + `forbid.sh` + `ai_sbom_check`) | CI | PR + push to `main` | **Required** |
+| **L1** | `L1-gitleaks` (history secret scan) | CI | PR + push to `main` | **Required** |
+| **L1** | `L1-terraform` (fmt + validate) | CI | PR + push to `main` | **Required** |
+| **L1** | `checks-selftest` (prove the checks bite) | CI | PR + push to `main` | **Required** |
+| **L1** | `L1-dep-review` (new-vuln-dep SCA gate) | CI | PR only | Advisory |
+| **L1** | CodeQL (SAST) | CI (`codeql.yml`) | PR + push `main` + weekly | Advisory |
+| **L1** | Trivy CVE sweep | CI (`security-scan.yml`) | Nightly + push `main` + on-demand | Advisory |
+| **L1** | Dependabot alerts / update PRs | Repo-wide | Continuous alerts + weekly PRs | Advisory |
+| **L2** | `L2-tests` (unit + Testcontainers integration) | CI | PR + push to `main` | **Required** |
+| **L2** | `L2-frontend-tests` (Karma/Jasmine) | CI | PR + push to `main` | **Required** |
+| **L2** | `L2-backend-image` (build + `/health` smoke) | CI | PR + push to `main` | **Required** |
+| **L3** | `L3-diff-guard` (auth isolation, blast radius, order/risk combos) | CI | PR + push to `main` | **Required** |
+| **L4** | `L4-ai-review` (LLM reviewer on the diff) | CI | PR + push to `main` (skips on push when the SHA came from a merged PR) | Advisory — forced-high signals L5 |
+| **L5** | Require-PR + human merge | Ruleset `protect-main` | Every change to `main` | Blocks: no PR / not green → no merge |
+| **L5** | Deploy approval (`rationale` + audit row) | Deploy → `audit-log` branch | On dispatch / push-main deploy | Records the decision (dormant until Azure) |
+
+**Coverage caveat:** L2/L3/L4 are entirely CI-side, and the local L1 pre-commit
+hook is opt-in (`install_hooks.py`) — so before CI, a plain `git commit` in a
+terminal is guarded by nothing unless that hook is installed. The PreToolUse hook
+covers only tool calls made *through* Claude Code, not a human typing `git commit`.

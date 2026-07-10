@@ -1,0 +1,37 @@
+# Enforces the break-glass post-hoc SLA: a `break-glass-review` issue open past
+# 48h fails this run (a red scheduled run is the visible alert). Emergencies get
+# to skip L3/L4/L5 at merge time, but the deferred review is NOT optional.
+#
+# TODO(notify): wire email (or Slack/Teams) here when a channel is chosen — the
+# user deferred that. For now the failing run + issue are the signal.
+name: break-glass-sla
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # daily 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: read
+
+jobs:
+  overdue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any break-glass review is open past 48h
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CUTOFF="$(date -u -d '48 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          OVERDUE="$(gh issue list --repo "${{ github.repository }}" \
+            --label break-glass-review --state open \
+            --json number,title,createdAt \
+            --jq "[.[] | select(.createdAt < \"$CUTOFF\")]")"
+          COUNT="$(printf '%s' "$OVERDUE" | jq 'length')"
+          if [ "$COUNT" -gt 0 ]; then
+            printf '%s' "$OVERDUE" | jq -r '.[] | "::error::break-glass review OVERDUE (>48h): #\(.number) \(.title)"'
+            echo "$COUNT overdue break-glass review(s) — the deferred L3/L4/L5 review is late."
+            exit 1
+          fi
+          echo "no overdue break-glass reviews"

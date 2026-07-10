@@ -1,0 +1,6 @@
+# On-call roster for break-glass (scripts/emergency_merge.sh).
+# One GitHub username per line. The script does an exact full-line match, so
+# these `#` comment lines are simply never matched. Editing this file is
+# forced-high, so it goes through a normal reviewed PR — adding yourself to
+# on-call requires review. See runbooks/break-glass.md.
+liubrend

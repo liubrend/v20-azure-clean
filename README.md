@@ -177,6 +177,11 @@ To inspect or change the rule:
 `gh api repos/liubrend/v20-azure-clean/rulesets` (list),
 `gh api repos/liubrend/v20-azure-clean/rulesets/<id>` (detail).
 
+**Break-glass.** For a live incident, on-call can emergency-merge with only L1+L2
+mandated (L3/L4/L5 deferred to a mandatory 48h review) via
+`scripts/emergency_merge.sh` — a loud, audited procedure, not a quiet bypass.
+See [`runbooks/break-glass.md`](runbooks/break-glass.md).
+
 ### Porting to a new repo or fork
 
 The committed files travel (workflows, `dependabot.yml`, the check scripts) — but

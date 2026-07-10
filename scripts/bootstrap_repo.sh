@@ -88,7 +88,13 @@ create_ruleset "protect-audit-log" '{
   "bypass_actors": [ { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" } ],
   "rules": [ { "type": "deletion" }, { "type": "non_fast_forward" } ] }'
 
-# --- 5. Manual reminders (things this script cannot do for you) -----------------
+# --- 5. Break-glass review label (used by scripts/emergency_merge.sh) -----------
+echo "-> break-glass-review label"
+api -X POST "repos/$REPO/labels" -f name=break-glass-review -f color=b60205 \
+  -f description="Mandatory post-hoc review of a break-glass emergency merge (48h SLA)" \
+  >/dev/null 2>&1 && echo "   created" || echo "   already exists — skipping"
+
+# --- 6. Manual reminders (things this script cannot do for you) -----------------
 cat <<'NOTE'
 
 Done. Manual follow-ups this script cannot do:

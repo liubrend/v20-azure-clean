@@ -24,6 +24,7 @@
     { "path": "scripts/checks/selftest.sh", "sha256": "29dea2e0fa6ce347f88910160ffa34b1caf45ceaf25bace0d50aa58d33fdae81", "role": "checks negative-test harness" },
     { "path": "scripts/emergency_merge.sh", "sha256": "15d700c1a89bdd3c0f6c78dc24725939272c84aa921d469c9233e1938f993103", "role": "break-glass emergency merge (admin bypass; L1+L2 mandated)" },
     { "path": "scripts/record_deploy_approval.sh", "sha256": "57778b2908eff205341a41ef3ff8a5f073104135dd1b8803e52ba801069181fe", "role": "L5 audit-log writer (pushes to main at deploy time)" },
+    { "path": "scripts/bootstrap_repo.sh", "sha256": "fb96f4115399313e0a66894cf1c56029ef0782c161eb5e1e719c43248cf20337", "role": "repo-settings bootstrap (defines rulesets + enables scanning)" },
     { "path": "scripts/checks/ai_sbom_check.py", "sha256": "46e3c5844ed634f5b7dd4f4d4a8a930a4e61e6bd2bdb807c04375a4615a3fcae", "role": "this manifest's verifier" },
     { "path": "scripts/security_precommit.py", "sha256": "b021b63be6b196956f97dd1407ab01c9cead36fbe1758db0b4177db445e593fc", "role": "L1 content scanner (pre-commit + CI + PreToolUse)" },
     { "path": "scripts/pretool_security_check.py", "sha256": "cd499317c79dee810cea8f241df44133582ccb4fd030b5f936bbf3864067e526", "role": "PreToolUse hook" }

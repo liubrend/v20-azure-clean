@@ -25,7 +25,7 @@ git hooks, security checks, and **Azure** infra. The application slice is a
 | `CONTEXT.md` | Domain glossary (ubiquitous language) — fill in per project |
 | `docs/` | `product/` (prd, architecture), `specs/`, `adr/`, `context/`, `audit/`, `security/` (security intents), `data-model/` |
 | `.github/` | `workflows/`: `ci.yml` (L1–L4 gates, PR + push to `main`), `codeql.yml` (SAST), `security-scan.yml` (nightly Trivy), `deploy-{backend,frontend}.yml`; plus `dependabot.yml` (SCA) |
-| `.githooks/` + `scripts/` | git hooks + the L1/L3/L4 check scripts (`security_precommit.py`, `checks/`, `record_deploy_approval.sh`); `make setup` installs the hooks |
+| `.githooks/` + `scripts/` | git hooks + the L1/L3/L4 check scripts (`security_precommit.py`, `checks/`, `record_deploy_approval.sh`); `make setup` installs the hooks, `bootstrap_repo.sh` re-creates the repo-level settings |
 | `Makefile` | `make setup` — installs the local L1 pre-commit hook |
 | `security/` | `security_rules.json` (scanner allowlists) + `ai_sbom.json` (ASI04 manifest; hash-pins the guard scripts) |
 | `infra/terraform/` | Azure foundation (ACR, Container Apps, Azure SQL, Blob, Key Vault, OIDC) |
@@ -163,6 +163,26 @@ record depends on the Azure bootstrap beyond the deploy jobs becoming active.)
 To inspect or change the rule:
 `gh api repos/liubrend/v20-azure-clean/rulesets` (list),
 `gh api repos/liubrend/v20-azure-clean/rulesets/<id>` (detail).
+
+### Porting to a new repo or fork
+
+The committed files travel (workflows, `dependabot.yml`, the check scripts) — but
+the **enforcing half is repo-level GitHub config that a copy does NOT inherit**:
+the branch-protection rulesets, Dependabot alerts, secret scanning, `delete_branch_on_merge`,
+and the repo secrets. On a fresh repo the gates would *run* but not *block*, and
+`L4` would fail with no `ANTHROPIC_API_KEY`.
+
+Re-establish it in one command (needs admin + `gh` auth on the target repo):
+
+```bash
+bash scripts/bootstrap_repo.sh [owner/repo]   # defaults to the current repo
+```
+
+It's idempotent: enables secret scanning + push protection and Dependabot alerts,
+sets `delete_branch_on_merge`, and creates the `protect-main` / `protect-audit-log`
+rulesets if absent. It can't set visibility (rulesets need a public or paid repo)
+or the secrets — it prints those as manual reminders. (This closes the *new
+GitHub repo* gap; a move to a non-GitHub host is a re-platform regardless.)
 
 ## Supply-chain scanning
 

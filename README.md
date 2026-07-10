@@ -24,14 +24,15 @@ git hooks, security checks, and **Azure** infra. The application slice is a
 | `.project/` | Machine-readable metadata: `config.yaml`, `stack.yaml`, `plan.md` |
 | `CONTEXT.md` | Domain glossary (ubiquitous language) — fill in per project |
 | `docs/` | `product/` (prd, architecture), `specs/`, `adr/`, `context/`, `audit/`, `security/` (security intents), `data-model/` |
-| `.github/workflows/` | `ci.yml` (L1–L4 gates, on PR) + `deploy-{backend,frontend}.yml` |
-| `.githooks/` + `scripts/` | pre-commit security scan and shared fail-closed checks |
-| `security/` | `security_rules.json` consumed by the pre-commit scanner |
+| `.github/` | `workflows/`: `ci.yml` (L1–L4 gates, PR + push to `main`), `codeql.yml` (SAST), `security-scan.yml` (nightly Trivy), `deploy-{backend,frontend}.yml`; plus `dependabot.yml` (SCA) |
+| `.githooks/` + `scripts/` | git hooks + the L1/L3/L4 check scripts (`security_precommit.py`, `checks/`, `record_deploy_approval.sh`); `make setup` installs the hooks |
+| `Makefile` | `make setup` — installs the local L1 pre-commit hook |
+| `security/` | `security_rules.json` (scanner allowlists) + `ai_sbom.json` (ASI04 manifest; hash-pins the guard scripts) |
 | `infra/terraform/` | Azure foundation (ACR, Container Apps, Azure SQL, Blob, Key Vault, OIDC) |
 | `src/backend/` | Gradle multi-module Spring Boot services + their Dockerfiles |
 | `src/frontend/` | Angular workspace (Karma/Jasmine, Static Web Apps config) |
 | `tests/` | `unit/` and `integration/` cross-cutting test suites |
-| `migrations/` | Archival SQL from the old DB backup (never executed by the app; runtime schema is Liquibase in `backend/`) |
+| `migrations/` | Archival SQL from the old DB backup (never executed by the app; runtime schema is Liquibase in `src/backend/`) |
 
 ## Architecture
 

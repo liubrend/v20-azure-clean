@@ -27,7 +27,7 @@ git hooks, security checks, and **Azure** infra. The application slice is a
 | `.github/` | `workflows/`: `ci.yml` (L1–L4 gates, PR + push to `main`), `codeql.yml` (SAST), `security-scan.yml` (nightly Trivy), `deploy-{backend,frontend}.yml`; plus `dependabot.yml` (SCA) |
 | `.githooks/` + `scripts/` | git hooks + the L1/L3/L4 check scripts (`security_precommit.py`, `checks/`, `record_deploy_approval.sh`); `make setup` installs the hooks, `bootstrap_repo.sh` re-creates the repo-level settings |
 | `Makefile` | `make setup` — installs the local L1 pre-commit hook |
-| `security/` | `security_rules.json` (scanner allowlists) + `ai_sbom.json` (ASI04 manifest; hash-pins the guard scripts) |
+| `security/` | `security_rules.json` (scanner allowlists) + `ai_sbom.json` (ASI04 manifest; hash-pins the guard stack, and its `require_pinned` globs fail L1 if a security-relevant file ships un-pinned) |
 | `infra/terraform/` | Azure foundation (ACR, Container Apps, Azure SQL, Blob, Key Vault, OIDC) |
 | `src/backend/` | Gradle multi-module Spring Boot services + their Dockerfiles |
 | `src/frontend/` | Angular workspace (Karma/Jasmine, Static Web Apps config) |

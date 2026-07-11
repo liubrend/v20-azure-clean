@@ -124,6 +124,30 @@ else
   echo "selftest: high_risk should NOT flag web/frontend paths (got: $hr_miss)" >&2; exit 1
 fi
 
+# --- ai_sbom_check completeness gate must BITE (require_pinned file not pinned) ---
+comp_bite="$(python3 -c "
+import sys; sys.path.insert(0, '$here')
+import ai_sbom_check as m
+from pathlib import Path
+errs = m.check_completeness({'require_pinned': ['security/*.json'], 'tool_definitions': []}, Path('$here').resolve().parents[1])
+print('BITE' if errs else 'NOBITE')")"
+if [ "$comp_bite" = "BITE" ]; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: ai_sbom completeness should flag an unpinned require_pinned file" >&2; exit 1
+fi
+comp_clean="$(python3 -c "
+import sys; sys.path.insert(0, '$here')
+import ai_sbom_check as m
+from pathlib import Path
+errs = m.check_completeness({'require_pinned': ['security/no-such-*.json'], 'tool_definitions': []}, Path('$here').resolve().parents[1])
+print('BITE' if errs else 'CLEAN')")"
+if [ "$comp_clean" = "CLEAN" ]; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: ai_sbom completeness should not flag a glob matching nothing" >&2; exit 1
+fi
+
 # --- record_deploy_approval.sh row builder (dry-run, no git) ---
 rec="$here/../record_deploy_approval.sh"
 rec_row=$(RECORD_DRY_RUN=1 DEPLOY_ENV="production (backend)" DEPLOY_SHA="abcdef1234567" \

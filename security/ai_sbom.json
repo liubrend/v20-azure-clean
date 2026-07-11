@@ -14,7 +14,21 @@
       "used_by": "scripts/checks/ai_review.py (CI L4 gate, not runtime)"
     }
   ],
+  "_require_pinned_comment": "Every file matching a require_pinned glob MUST appear in tool_definitions (check_completeness). Stops a security-relevant file shipping un-pinned. scripts/install_hooks.py is deliberately excluded (low-risk dev convenience).",
+  "require_pinned": [
+    "security/*.json",
+    "scripts/checks/*.py",
+    "scripts/checks/*.sh",
+    "scripts/security_precommit.py",
+    "scripts/pretool_security_check.py",
+    "scripts/record_deploy_approval.sh",
+    "scripts/emergency_merge.sh",
+    "scripts/bootstrap_repo.sh",
+    ".github/high-risk-paths",
+    ".claude/agents/reviewer.md"
+  ],
   "tool_definitions": [
+    { "path": "security/security_rules.json", "sha256": "faf493abaeee6d642d616bab0826003fcea0234181d1d71d482041afcd64c78f", "role": "L1 scanner allowlists (imports, injection/PII allowlist, ignored paths)" },
     { "path": ".claude/agents/reviewer.md", "sha256": "a7c828dad55e83b1df2fea05a5f4c695d179091403b69789c76a92551a6c75d9", "role": "L4 reviewer rubric" },
     { "path": "scripts/checks/ai_review.py", "sha256": "9f6baa6c82c0792f9011f39ca97ca44dd2bc4a1da46a2f6c2b334db47fc2ce96", "role": "L4 gate harness" },
     { "path": "scripts/checks/high_risk.py", "sha256": "bb7a95aaee290e93a54bad6342dc3d698966161172b15c1fe4d9cb8192f39de1", "role": "high-risk src/ path classifier (L4 + L1-high-risk)" },
@@ -23,11 +37,11 @@
     { "path": "scripts/checks/spec_traceability.py", "sha256": "bc86ba024a32ecaeff3fe0d5eed34e12895ca71355ac437ac178f4c84fcc203f", "role": "L2 spec-traceability gate" },
     { "path": "scripts/checks/forbid.sh", "sha256": "5edab1a60c9ccde89494a58c7f44d16e4443fcf1a925c77c764467b0044afb13", "role": "L1 forbidden-pattern scan" },
     { "path": "scripts/checks/lib.sh", "sha256": "a2ac747ea32c31dea526c4e2efbca541f0436686e2a424dd0106eda930c89a97", "role": "shared check regexes" },
-    { "path": "scripts/checks/selftest.sh", "sha256": "d3ef8d52e78ac66a694b7156d332db960aebae7b83c40a5d69ff2c04e5f7cadb", "role": "checks negative-test harness" },
+    { "path": "scripts/checks/selftest.sh", "sha256": "13e49c1f0dc5dae7948e6dbabf77058eba8038f9f35f8cd18add402d1ef66c16", "role": "checks negative-test harness" },
     { "path": "scripts/emergency_merge.sh", "sha256": "15d700c1a89bdd3c0f6c78dc24725939272c84aa921d469c9233e1938f993103", "role": "break-glass emergency merge (admin bypass; L1+L2 mandated)" },
     { "path": "scripts/record_deploy_approval.sh", "sha256": "57778b2908eff205341a41ef3ff8a5f073104135dd1b8803e52ba801069181fe", "role": "L5 audit-log writer (pushes to main at deploy time)" },
     { "path": "scripts/bootstrap_repo.sh", "sha256": "b8078d7eae74493900bd769406167e61d31c9a22389e75e0fe2abd60d26741b6", "role": "repo-settings bootstrap (defines rulesets + enables scanning)" },
-    { "path": "scripts/checks/ai_sbom_check.py", "sha256": "46e3c5844ed634f5b7dd4f4d4a8a930a4e61e6bd2bdb807c04375a4615a3fcae", "role": "this manifest's verifier" },
+    { "path": "scripts/checks/ai_sbom_check.py", "sha256": "b71eafc0a373a73897cd673b112ac681b1d55f83cfbe5534d7de7a92300d9b4b", "role": "this manifest's verifier" },
     { "path": "scripts/security_precommit.py", "sha256": "b021b63be6b196956f97dd1407ab01c9cead36fbe1758db0b4177db445e593fc", "role": "L1 content scanner (pre-commit + CI + PreToolUse)" },
     { "path": "scripts/pretool_security_check.py", "sha256": "cd499317c79dee810cea8f241df44133582ccb4fd030b5f936bbf3864067e526", "role": "PreToolUse hook" }
   ],

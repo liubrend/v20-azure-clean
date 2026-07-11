@@ -78,12 +78,37 @@ def check_data_sources(manifest: dict) -> list[str]:
     return errors
 
 
+def check_completeness(manifest: dict, root: Path = REPO_ROOT) -> list[str]:
+    """Every file matching a `require_pinned` glob MUST be in tool_definitions.
+
+    Makes "did we pin everything security-relevant?" a machine question instead
+    of something an audit keeps rediscovering -- a new security/*.json config or
+    scripts/checks/* file that ships un-pinned fails the build.
+    """
+    pinned = {entry["path"] for entry in manifest.get("tool_definitions", [])}
+    errors = []
+    for pattern in manifest.get("require_pinned", []):
+        for path in sorted(root.glob(pattern)):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel == "security/ai_sbom.json":  # the manifest cannot pin itself
+                continue
+            if rel not in pinned:
+                errors.append(
+                    f"'{rel}' matches require_pinned '{pattern}' but is not hash-pinned in "
+                    f"tool_definitions (add it: git cat-file blob :{rel} | sha256sum)"
+                )
+    return errors
+
+
 def main() -> int:
     manifest = load_manifest()
     errors = [
         *check_model_pins(manifest),
         *check_tool_schemas(manifest),
         *check_data_sources(manifest),
+        *check_completeness(manifest),
     ]
 
     if errors:

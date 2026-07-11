@@ -65,3 +65,5 @@ public class IntentGuard {
         IntentCheckResult classify(String text, IntentCapsule capsule);
     }
 }
+
+// dogfood: high-risk gate test (revert)

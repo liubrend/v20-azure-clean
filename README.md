@@ -146,8 +146,9 @@ minutes). The ruleset makes the gates *block* merges rather than only advise:
   self-approve; L5 is the human's merge action plus the recorded
   `docs/audit/log.md` row, informed by the advisory L4 findings).
 - **Required status checks** (strict — branch must be up to date):
-  `L1-policy`, `L1-gitleaks`, `L1-terraform`, `L2-tests`, `L2-frontend-tests`,
-  `L2-backend-image`, `L2-spec-traceability`, `L3-diff-guard`, `checks-selftest`.
+  `L1-policy`, `L1-gitleaks`, `L1-terraform`, `L1-high-risk`, `L2-tests`,
+  `L2-frontend-tests`, `L2-backend-image`, `L2-spec-traceability`, `L3-diff-guard`,
+  `checks-selftest`.
 - **`L4-ai-review` is intentionally NOT required.** It fails "forced-high" on
   any change outside `src/` and `tests/` by design — that is the L5 escalation
   signal, not a defect. Requiring it would make every docs/workflow/config PR
@@ -176,6 +177,24 @@ record depends on the Azure bootstrap beyond the deploy jobs becoming active.)
 To inspect or change the rule:
 `gh api repos/liubrend/v20-azure-clean/rulesets` (list),
 `gh api repos/liubrend/v20-azure-clean/rulesets/<id>` (detail).
+
+### High-risk `src/` changes
+
+Most application code under `src/` merges on green checks + the owner's merge.
+But **high-risk paths** (`.github/high-risk-paths` — auth, order engine, risk
+limits, payments, the agent guards, DB migrations) get extra scrutiny:
+
+- **Forced-high in L4** — `ai_review.py` classifies a change to those paths as
+  high-risk (same structural escalation as an outside-`src/` change), so `L4`
+  goes red as the L5 signal.
+- **`L1-high-risk` gate (required)** — a PR touching a high-risk path is
+  **blocked** until a human reviews it and applies the **`high-risk-ack`** label.
+
+The label is a deliberate, audited acknowledgment — not yet a true second-person
+review, because the repo is solo-owned (GitHub blocks self-approval). A **dormant
+`.github/CODEOWNERS`** is wired to upgrade this to a real required review the moment
+a second reviewer joins: add them as owner, then set the `protect-main` ruleset's
+`required_approving_review_count` to 1 and `require_code_owner_review` to true.
 
 ### Break-glass (emergency merge)
 
@@ -263,6 +282,7 @@ else runs and reports but does not block (the deliberate advisory tier).
 | **L1** | `L1-gitleaks` (history secret scan) | CI | PR + push to `main` | **Required** |
 | **L1** | `L1-terraform` (fmt + validate) | CI | PR + push to `main` | **Required** |
 | **L1** | `checks-selftest` (prove the checks bite) | CI | PR + push to `main` | **Required** |
+| **L1** | `L1-high-risk` (high-risk `src/` path needs a `high-risk-ack` label) | CI | PR (blocks); push informational | **Required** |
 | **L1** | `L1-dep-review` (new-vuln-dep SCA gate) | CI | PR only | Advisory |
 | **L1** | CodeQL (SAST) | CI (`codeql.yml`) | PR + push `main` + weekly | Advisory |
 | **L1** | Trivy CVE sweep | CI (`security-scan.yml`) | Nightly + push `main` + on-demand | Advisory |

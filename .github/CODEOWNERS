@@ -1,0 +1,20 @@
+# CODEOWNERS — DORMANT until a second reviewer exists.
+#
+# Maps high-risk areas to a reviewer. It is INERT today because the protect-main
+# ruleset keeps `required_approving_review_count: 0` and `require_code_owner_review:
+# false` — a sole owner cannot approve their own PR, so requiring a review would lock
+# merges. Until then the L1-high-risk acknowledgment gate is the enforcement.
+#
+# To turn this into a real second-person review:
+#   1. add the reviewer as a collaborator and set them as the owner below,
+#   2. flip the ruleset: required_approving_review_count -> 1, require_code_owner_review -> true
+#      (via scripts/bootstrap_repo.sh's ruleset JSON or a gh api PUT).
+#
+# Keep aligned with .github/high-risk-paths (gitignore-style globs here, not fnmatch).
+
+/src/backend/**/agent/           @liubrend
+/src/backend/**/db/changelog/    @liubrend
+# Forward-looking (no code yet) — add concrete dirs as auth/order/risk/payment code lands:
+# /src/backend/**/auth/          @liubrend
+# /src/backend/**/order*/        @liubrend
+# /src/backend/**/risk*/         @liubrend

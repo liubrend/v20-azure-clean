@@ -13,6 +13,9 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # for the high_risk sibling module
+import high_risk  # noqa: E402
+
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_API_VERSION = "2023-06-01"
 OPENAI_API_URL = "https://api.openai.com/v1/responses"
@@ -287,10 +290,14 @@ def main() -> int:
     diff = read_required(args.diff, "PR diff")
     prompt = build_prompt(rubric, diff)
 
-    # Forced-high is enforced HERE, structurally, not only via the rubric:
-    # a prompt-injected or under-reporting model must not be able to wave
-    # through changes outside the app roots (CLAUDE.md policy gate).
-    policy_paths = forced_high_paths(changed_paths(diff), app_roots())
+    # Forced-high is enforced HERE, structurally, not only via the rubric: a
+    # prompt-injected or under-reporting model must not wave through a change
+    # outside the app roots (CLAUDE.md policy gate) OR a change to a high-risk
+    # path under src/ (.github/high-risk-paths).
+    changed = changed_paths(diff)
+    policy_paths = sorted(
+        set(forced_high_paths(changed, app_roots())) | set(high_risk.high_risk(changed))
+    )
 
     if args.dry_run:
         print(f"L4 review dry-run ok: prompt has {len(prompt)} characters")

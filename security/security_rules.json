@@ -5,7 +5,8 @@
     "httpx",
     "aiohttp",
     "requests",
-    "security_precommit"
+    "security_precommit",
+    "high_risk"
   ],
   "ignored_path_patterns": [
     ".git/**",

@@ -75,8 +75,8 @@ create_ruleset "protect-main" '{
           { "context": "L1-policy" }, { "context": "L1-gitleaks" },
           { "context": "L1-terraform" }, { "context": "L2-tests" },
           { "context": "L2-frontend-tests" }, { "context": "L2-backend-image" },
-          { "context": "L2-spec-traceability" }, { "context": "L3-diff-guard" },
-          { "context": "checks-selftest" } ] } },
+          { "context": "L2-spec-traceability" }, { "context": "L1-high-risk" },
+          { "context": "L3-diff-guard" }, { "context": "checks-selftest" } ] } },
     { "type": "non_fast_forward" }, { "type": "deletion" }
   ] }'
 
@@ -88,10 +88,14 @@ create_ruleset "protect-audit-log" '{
   "bypass_actors": [ { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" } ],
   "rules": [ { "type": "deletion" }, { "type": "non_fast_forward" } ] }'
 
-# --- 5. Break-glass review label (used by scripts/emergency_merge.sh) -----------
+# --- 5. Labels (break-glass review + high-risk acknowledgment) ------------------
 echo "-> break-glass-review label"
 api -X POST "repos/$REPO/labels" -f name=break-glass-review -f color=b60205 \
   -f description="Mandatory post-hoc review of a break-glass emergency merge (48h SLA)" \
+  >/dev/null 2>&1 && echo "   created" || echo "   already exists — skipping"
+echo "-> high-risk-ack label"
+api -X POST "repos/$REPO/labels" -f name=high-risk-ack -f color=d93f0b \
+  -f description="Human-reviewed acknowledgment for a change touching a high-risk src/ path (L1-high-risk gate)" \
   >/dev/null 2>&1 && echo "   created" || echo "   already exists — skipping"
 
 # --- 6. Manual reminders (things this script cannot do for you) -----------------

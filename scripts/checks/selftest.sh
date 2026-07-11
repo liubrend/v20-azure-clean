@@ -109,6 +109,21 @@ printf 'an unrelated test with no scenario reference\n' > "$tmp/trace-bad/tests/
 expect_fail "spec-traceability: uncovered scenario fails" \
   python3 "$st" "$tmp/trace-bad"
 
+# --- high_risk.py must classify per .github/high-risk-paths ---
+hr="$here/high_risk.py"
+hr_hit="$(printf 'src/backend/x/agent/Guard.java\n' | python3 "$hr")"
+if [ -n "$hr_hit" ]; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: high_risk should flag an agent/ path" >&2; exit 1
+fi
+hr_miss="$(printf 'src/backend/x/web/Item.java\nsrc/frontend/a.ts\n' | python3 "$hr")"
+if [ -z "$hr_miss" ]; then
+  pass_count=$((pass_count + 1))
+else
+  echo "selftest: high_risk should NOT flag web/frontend paths (got: $hr_miss)" >&2; exit 1
+fi
+
 # --- record_deploy_approval.sh row builder (dry-run, no git) ---
 rec="$here/../record_deploy_approval.sh"
 rec_row=$(RECORD_DRY_RUN=1 DEPLOY_ENV="production (backend)" DEPLOY_SHA="abcdef1234567" \

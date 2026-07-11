@@ -1,0 +1,17 @@
+# High-risk paths under src/ — glob patterns (fnmatch against repo-relative paths).
+# A PR touching any of these is forced-high in L4 (scripts/checks/ai_review.py) AND
+# blocked by the L1-high-risk gate until reviewed (a `high-risk-ack` label today; a
+# CODEOWNERS review once a second reviewer joins — see .github/CODEOWNERS).
+#
+# Forward-looking for a trading app; most of these have no code yet. Editing this
+# file is forced-high (it is under .github/) and it is hash-pinned in ai_sbom.json,
+# so removing a high-risk path is never silent. `#` comments and blank lines ignored.
+src/backend/**/agent/**
+src/backend/**/*[Aa]uth*
+src/backend/**/*[Cc]redential*
+src/backend/**/order*/**
+src/backend/**/*[Oo]rder[Ee]ngine*
+src/backend/**/risk*/**
+src/backend/**/*[Rr]isk[Ll]imit*
+src/backend/**/payment*/**
+src/backend/**/db/changelog/**
